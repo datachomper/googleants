@@ -38,13 +38,71 @@ class MyBot:
         targets = {}
         # Keep track of one target moving towards a location
         # and moves the ant in that general direction
-        def move_location(loc, dest):
-            directions = ants.direction(loc, dest)
-            for direction in directions:
-                if move_direction(loc, direction):
-                    targets[dest] = loc
-                    return True
-            return False
+        # start == finish == tuple with x,y map coords
+        def move_location(start, finish):
+            # A* algorithm for pathfinding
+            # Adapted from http://theory.stanford.edu/~amitp/GameProgramming/ImplementationNotes.html
+            olist = []
+            clist = []
+            parents = {}
+            
+            # Push start onto the open list
+            # Everything in the heap needs to have F,G,H appended
+            # and F has to be specified, as the heap algorithm uses the
+            # leftmost value to sort
+            heappush(olist, (0,0,0,start))
+            parent[start] = None
+
+            # While lowest rank in olist is not the finish
+            while olist:
+                # Removed lowest rank item from open list
+                current = heappop(olist)
+                if current[3] == finish:
+                    # We're done, return the path
+                    break
+
+                # Add current to the closed list
+                heappush(clist, current)
+
+                # For neighbors of current
+                for direction in ['n','e','s','w']
+                    # Take care of map wrapping
+                    neighbor_loc = ants.destination(current[3], neighbor)
+
+                    # Ignore invalid adjacent moves
+                    if not ants.unoccupied(neighbor_loc) 
+                        continue
+
+                    # cost = G of current + movement cost to the neighbor
+                    # set movement cost to 1 for now, maybe make this dynamic later
+                    cost = current[1] + 1
+
+                    # ants.distance() returns the manhattan distance which
+                    # should be suitable for a square grid with only four moves
+                    neighbor_g = cost
+                    neighbor_h = ants.distance(neighbor_loc, finish)
+                    neighbor = (neighbor_h + neighbor_g, neighbor_g, neighbor_h, neighbor_loc)
+
+
+                    if (neighbor in olist and cost < neighbor[1]):
+                        # remove neighbor from olist because new path is better
+                    if (neighbor in clist and cost < neighbor[1]):
+                        # remove neighbor from clist
+                    if (neighbor not in olist and neighbor not in clist):
+                        # add neighbor to olist
+                        heappush(olist, neighbor)
+                        # set neighbor parent to current
+                        parent[neighbor[3]] = current[3]
+                
+            # Reconstruct reverse path by following parents
+            reversepath = []
+            node = current[3]
+            while node is not start:
+                reversepath.push(parent[node])
+                node = parent[node]
+
+            # reversepath[0] should be the next move
+            move_direction(start, reversepath[0])
 
         # Don't move onto an anthill ever
         for hill_loc in ants.my_hills():
