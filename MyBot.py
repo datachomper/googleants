@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from ants import *
+from heapq import heappush, heappop
 
 # define a class with a do_turn method
 # the Ants.run method will parse and update bot input
@@ -44,7 +45,7 @@ class MyBot:
             # Adapted from http://theory.stanford.edu/~amitp/GameProgramming/ImplementationNotes.html
             olist = []
             clist = []
-            parents = {}
+            parent = {}
             
             # Push start onto the open list
             # Everything in the heap needs to have F,G,H appended
@@ -65,12 +66,12 @@ class MyBot:
                 heappush(clist, current)
 
                 # For neighbors of current
-                for direction in ['n','e','s','w']
+                for direction in ['n','e','s','w']:
                     # Take care of map wrapping
-                    neighbor_loc = ants.destination(current[3], neighbor)
+                    neighbor_loc = ants.destination(current[3], direction)
 
                     # Ignore invalid adjacent moves
-                    if not ants.unoccupied(neighbor_loc) 
+                    if not ants.unoccupied(neighbor_loc) :
                         continue
 
                     # cost = G of current + movement cost to the neighbor
@@ -86,8 +87,10 @@ class MyBot:
 
                     if (neighbor in olist and cost < neighbor[1]):
                         # remove neighbor from olist because new path is better
+                        olist.remove(neighbor)
                     if (neighbor in clist and cost < neighbor[1]):
                         # remove neighbor from clist
+                        clist.remove(neighbor)
                     if (neighbor not in olist and neighbor not in clist):
                         # add neighbor to olist
                         heappush(olist, neighbor)
