@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from ants import *
 from heapq import heappush, heappop
+import logging as log
 
 # define a class with a do_turn method
 # the Ants.run method will parse and update bot input
@@ -8,6 +9,12 @@ from heapq import heappush, heappop
 class MyBot:
     def __init__(self):
         # define class level variables, will be remembered between turns
+        self.logger = log.getLogger("ants")
+        fp = log.FileHandler('debug.log')
+        formatter = log.Formatter('%(asctime)s %(message)s')
+        fp.setFormatter(formatter)
+        self.logger.addHandler(fp)
+        self.logger.setLevel(log.INFO)
         pass
     
     # do_setup is run once at the start of the game
@@ -25,6 +32,7 @@ class MyBot:
     # the ants class has the game state and is updated by the Ants.run method
     # it also has several helper methods to use
     def do_turn(self, ants):
+        self.logger.info("test")
         orders = {}
         def move_direction(loc, direction):
             # This library call takes care of map wrapping
