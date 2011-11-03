@@ -9,12 +9,14 @@ import logging as log
 class MyBot:
     def __init__(self):
         # define class level variables, will be remembered between turns
-        self.logger = log.getLogger("ants")
-        fp = log.FileHandler('debug.log')
-        formatter = log.Formatter('%(asctime)s %(message)s')
-        fp.setFormatter(formatter)
-        self.logger.addHandler(fp)
-        self.logger.setLevel(log.INFO)
+        self.debug = True
+        if self.debug:
+            self.logger = log.getLogger("ants")
+            fp = log.FileHandler('debug.log')
+            formatter = log.Formatter('%(asctime)s %(message)s')
+            fp.setFormatter(formatter)
+            self.logger.addHandler(fp)
+            self.logger.setLevel(log.INFO)
         pass
     
     # do_setup is run once at the start of the game
@@ -32,7 +34,8 @@ class MyBot:
     # the ants class has the game state and is updated by the Ants.run method
     # it also has several helper methods to use
     def do_turn(self, ants):
-        self.logger.info("test")
+        if self.debug:
+            self.logger.info("Begin Turn")
         orders = {}
         def move_direction(loc, direction):
             # This library call takes care of map wrapping
@@ -49,6 +52,8 @@ class MyBot:
         # and moves the ant in that general direction
         # start == finish == tuple with x,y map coords
         def move_location(start, finish):
+            if self.debug:
+                self.logger.info("move_location %s %s" % (start, finish))
             # A* algorithm for pathfinding
             # Adapted from http://theory.stanford.edu/~amitp/GameProgramming/ImplementationNotes.html
             olist = []
@@ -64,10 +69,18 @@ class MyBot:
 
             # While lowest rank in olist is not the finish
             while olist:
+                if self.debug:
+                    self.logger.info("olist: %s"%olist)
+                    self.logger.info("parent: %s"%parent)
                 # Removed lowest rank item from open list
                 current = heappop(olist)
+                if self.debug:
+                    self.logger.info("current: {0}".format(current))
                 if current[3] == finish:
                     # We're done, return the path
+                    break
+
+                if (1 == ants.distance(current[3], finish) and finish in ants.food()):
                     break
 
                 # Add current to the closed list
@@ -79,8 +92,10 @@ class MyBot:
                     neighbor_loc = ants.destination(current[3], direction)
 
                     # Ignore invalid adjacent moves
-                    if not ants.unoccupied(neighbor_loc) :
+                    if not ants.passable(neighbor_loc) or neighbor_loc in orders:
                         continue
+                    if self.debug:
+                        self.logger.info("valid move: %s %s"%(direction, neighbor_loc))
 
                     # cost = G of current + movement cost to the neighbor
                     # set movement cost to 1 for now, maybe make this dynamic later
@@ -92,28 +107,38 @@ class MyBot:
                     neighbor_h = ants.distance(neighbor_loc, finish)
                     neighbor = (neighbor_h + neighbor_g, neighbor_g, neighbor_h, neighbor_loc)
 
-
                     if (neighbor in olist and cost < neighbor[1]):
                         # remove neighbor from olist because new path is better
                         olist.remove(neighbor)
+                        self.logger.info("remove {0} from olist".format(neighbor))
                     if (neighbor in clist and cost < neighbor[1]):
                         # remove neighbor from clist
                         clist.remove(neighbor)
+                        self.logger.info("remove {0} from clist".format(neighbor))
                     if (neighbor not in olist and neighbor not in clist):
                         # add neighbor to olist
                         heappush(olist, neighbor)
                         # set neighbor parent to current
                         parent[neighbor[3]] = current[3]
+                        self.logger.info("parent[{0}] = {1}".format(neighbor[3], current[3]))
                 
-            # Reconstruct reverse path by following parents
+            # Reconsntruct reverse path by following parents
             reversepath = []
             node = current[3]
-            while node is not start:
-                reversepath.push(parent[node])
+            reversepath.append(node)
+            self.logger.info("derp {0}".format(node))
+            while parent[node] is not start:
+                self.logger.info("{0} parent is {1}".format(node, parent[node]))
+                reversepath.append(parent[node])
                 node = parent[node]
 
             # reversepath[0] should be the next move
-            move_direction(start, reversepath[0])
+            reversepath.reverse()
+            step = reversepath.pop()
+            if self.debug:
+                self.logger.info("moving: {0}".format(ants.direction(start, step)[0]))
+            targets[finish] = start
+            return move_direction(start, ants.direction(start, step)[0])
 
         # Don't move onto an anthill ever
         for hill_loc in ants.my_hills():
