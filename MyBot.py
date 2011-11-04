@@ -23,6 +23,7 @@ class MyBot:
         # initialize data structures after learning the game settings
         self.unseen = []
         self.hills = []
+        self.routes = {}
         for row in range(ants.rows):
             for col in range(ants.cols):
                 self.unseen.append((row, col))
@@ -63,9 +64,23 @@ class MyBot:
         # and moves the ant in that general direction
         # start == finish == tuple with x,y map coords
         def move_location(start, finish):
-            targets[finish] = start
-            path = nx.astar_path(self.basegraph, start, finish, manhattan_dist)
-            return move_direction(start, ants.direction(start, path[1])[0])
+            if start == finish:
+                return False
+
+            if finish in self.routes and start in self.routes[finish]:
+                # We've already made this path bro! Use that shit!
+                idx = self.routes[finish].index(start)
+                step = self.routes[finish][idx+1]
+            else:
+                # A* seems to take about 10ms per path on avg
+                path = nx.astar_path(self.basegraph, start, finish, manhattan_dist)
+                self.routes[finish] = path
+                step = path[1]
+            if move_direction(start, ants.direction(start, step)[0]):
+                targets[finish] = start
+                return True
+            else:
+                return False
 
         # Don't move onto an anthill ever
         for hill_loc in ants.my_hills():
