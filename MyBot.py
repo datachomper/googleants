@@ -65,7 +65,6 @@ class MyBot:
         def move_location(start, finish):
             targets[finish] = start
             path = nx.astar_path(self.basegraph, start, finish, manhattan_dist)
-            self.logger.info("Moving {0} to {1} direction: {2}".format(start,finish,ants.direction(start, path[1])[0]))
             return move_direction(start, ants.direction(start, path[1])[0])
 
         # Don't move onto an anthill ever
@@ -88,20 +87,20 @@ class MyBot:
 
         # Second move priority
         # Attack enemy hills
-        for hill_loc, hill_owner in ants.enemy_hills():
-            if hill_loc not in self.hills:
-                self.hills.append(hill_loc)
-
-        ant_dist = []
-        for hill_loc in self.hills:
-            for ant_loc in ants.my_ants():
-                if ant_loc not in orders.values():
-                    dist = ants.distance(ant_loc, hill_loc)
-                    ant_dist.append((dist, ant_loc))
-        ant_dist.sort()
-        for dist, ant_loc in ant_dist:
-            self.logger.info("Moving {0} to hill {1}".format(ant_loc, hill_loc))
-            move_location(ant_loc, hill_loc)
+#        for hill_loc, hill_owner in ants.enemy_hills():
+#            if hill_loc not in self.hills:
+#                self.hills.append(hill_loc)
+#
+#        ant_dist = []
+#        for hill_loc in self.hills:
+#            for ant_loc in ants.my_ants():
+#                if ant_loc not in orders.values():
+#                    dist = ants.distance(ant_loc, hill_loc)
+#                    ant_dist.append((dist, ant_loc))
+#        ant_dist.sort()
+#        for dist, ant_loc in ant_dist:
+#            self.logger.info("Moving {0} to hill {1}".format(ant_loc, hill_loc))
+#            move_location(ant_loc, hill_loc)
 
         # Third move priority
         # Explore the map to reveal non-visible areas
