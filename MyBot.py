@@ -41,6 +41,8 @@ class MyBot:
             for col in range(ants.cols):
                 if (row,col) in self.basegraph and ants.map[row][col] == -4:
                     self.basegraph.remove_node((row,col))
+                    if (row,col) in self.unseen:
+                        self.unseen.remove((row,col))
 
         orders = {}
         def move_direction(loc, direction):
@@ -73,7 +75,10 @@ class MyBot:
                 step = self.routes[finish][idx+1]
             else:
                 # A* seems to take about 10ms per path on avg
-                path = nx.astar_path(self.basegraph, start, finish, manhattan_dist)
+                try:
+                    path = nx.astar_path(self.basegraph, start, finish, manhattan_dist)
+                except nx.NetworkXNoPath: 
+                    return False
                 self.routes[finish] = path
                 step = path[1]
             if move_direction(start, ants.direction(start, step)[0]):
