@@ -49,8 +49,8 @@ class MyBot:
             # This library call takes care of map wrapping
             new_loc = ants.destination(loc, direction)
             if (ants.unoccupied(new_loc) and new_loc not in orders):
-                ants.issue_order((loc, direction))
                 orders[new_loc] = loc
+                ants.issue_order((loc, direction))
                 return True
             else:
                 return False 
@@ -85,6 +85,7 @@ class MyBot:
                 targets[finish] = start
                 return True
             else:
+                targets[finish] = start
                 return False
 
         # Don't move onto an anthill ever
@@ -128,29 +129,30 @@ class MyBot:
             if ants.visible(loc):
                 self.unseen.remove(loc)
 
-        for ant_loc in ants.my_ants():
-            tries = 0
+        for ant_loc in ants.my_ants(): 
+            if ants.time_remaining() < 100:
+                break
             if ant_loc not in orders.values():
                 unseen_dist = []
                 for unseen_loc in self.unseen:
+                    if unseen_loc in targets:
+                        continue
                     dist = ants.distance(ant_loc, unseen_loc)
                     unseen_dist.append((dist, unseen_loc))
                 unseen_dist.sort()
                 for dist, unseen_loc in unseen_dist:
                     self.logger.info("Moving {0} to explore {1}".format(ant_loc, unseen_loc))
-                    if move_location(ant_loc, unseen_loc) or tries < 4:
-                        break
-                    else:
-                        tries += 1
+                    move_location(ant_loc, unseen_loc)
+                    break
 
         # Last move priority
         # Move off the anthill if we are blocking it
-        for hill_loc in ants.my_hills():
-            if hill_loc in ants.my_ants() and hill_loc not in orders.values():
-                for direction in ('s', 'e', 'w', 'n'):
-                    if move_direction(hill_loc, direction):
-                        self.logger.info("Moving {0} to off anthill {1}".format(ant_loc, direction))
-                        break
+#        for hill_loc in ants.my_hills():
+#            if hill_loc in ants.my_ants() and hill_loc not in orders.values():
+#                for direction in ('s', 'e', 'w', 'n'):
+#                    if move_direction(hill_loc, direction):
+#                        self.logger.info("Moving {0} to off anthill {1}".format(ant_loc, direction))
+#                        break
             
         self.logger.info("Turn over with {0}ms remaining".format(ants.time_remaining()))
 
