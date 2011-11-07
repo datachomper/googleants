@@ -31,7 +31,7 @@ class MyBot:
         self.cols = ants.cols
 
     def neighbors(self, loc_list, target):
-        adj = []
+        adj = set()
         old_x, old_y = target
         for x,y in [(0,1),(1,0),(0,-1),(-1,0)]:
             new_x = x + old_x
@@ -45,33 +45,39 @@ class MyBot:
             if new_y < 0:
                 new_y += self.rows
             if (new_x,new_y) in loc_list:
-                adj.append((new_x, new_y))
+                adj.add((new_x, new_y))
         return adj
     
     def BFS(self, map, target):
         visited = []
-        visiting = []
-        remaining = []
+        visiting = set()
+        remaining = set()
+        t = time.time()
     
         # Create x,y tuple for any loc that isn't 0
         # 0 denotes non-existant nodes
         for x in range(self.rows):
             for y in range(self.cols):
                 if (map[x][y]):
-                    remaining.append((x,y))
+                    remaining.add((x,y))
+        t = time.time()
     
         if target not in remaining:
             return []
     
-        visiting.append(target)
+        t = time.time()
+
+        visiting.add(target)
         remaining.remove(target)
         # Visit every node on current level, store its children
         # in seen list
-        while visiting != []:
-            seen = []
+        t = time.time()
+        while visiting != set([]):
+            t = time.time()
+            seen = set()
             for node in visiting:
                 for x in self.neighbors(remaining, node):
-                    seen.append(x)
+                    seen.add(x)
                     remaining.remove(x)
             visited.append(visiting)
             visiting = seen
@@ -80,7 +86,6 @@ class MyBot:
 
     def do_turn(self, ants):
         self.info("Begin Turn")
-        self.info((ants.cols, ants.rows))
         
         # Remove discovered WATER nodes from the obstacle map
         for row in range(ants.rows):
