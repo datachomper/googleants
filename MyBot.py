@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 from ants import *
-from heapq import heappush, heappop
 import logging as log
-import networkx as nx
 
 # define a class with a do_turn method
 # the Ants.run method will parse and update bot input
@@ -19,142 +17,99 @@ class MyBot:
             self.logger.addHandler(fp)
             self.logger.setLevel(log.INFO)
 
+    def info(self, *msg):
+        if self.debug:
+            self.logger.info(msg)
+        else:
+            return
+
     def do_setup(self, ants):
-        # initialize data structures after learning the game settings
-        self.unseen = []
-        self.hills = []
-        self.routes = {}
-        for row in range(ants.rows):
-            for col in range(ants.cols):
-                self.unseen.append((row, col))
+        self.obsmap = [[1 for col in range(ants.cols)] for row in range(ants.rows)]
+        self.foodtargets = []
+        self.foodmap = [[0 for col in range(ants.cols)] for row in range(ants.rows)]
+        self.rows = ants.rows
+        self.cols = ants.cols
 
-        # Define a base graph for obsticle avoidance
-        self.basegraph = nx.grid_graph(dim=[ants.rows, ants.cols],
-                                       periodic=True)
+    def neighbors(self, loc_list, target):
+        adj = []
+        old_x, old_y = target
+        for x,y in [(0,1),(1,0),(0,-1),(-1,0)]:
+            new_x = x + old_x
+            if new_x > self.cols-1:
+                new_x -= self.cols
+            if new_x < 0:
+                new_x += self.cols
+            new_y = y + old_y
+            if new_y > self.rows-1:
+                new_y -= self.rows
+            if new_y < 0:
+                new_y += self.rows
+            if (new_x,new_y) in loc_list:
+                adj.append((new_x, new_y))
+        return adj
     
-    # do turn is run once per turn
+    def BFS(self, map, target):
+        visited = []
+        visiting = []
+        remaining = []
+    
+        # Create x,y tuple for any loc that isn't 0
+        # 0 denotes non-existant nodes
+        for x in range(self.rows):
+            for y in range(self.cols):
+                if (map[x][y]):
+                    remaining.append((x,y))
+    
+        if target not in remaining:
+            return []
+    
+        visiting.append(target)
+        remaining.remove(target)
+        # Visit every node on current level, store its children
+        # in seen list
+        while visiting != []:
+            seen = []
+            for node in visiting:
+                for x in self.neighbors(remaining, node):
+                    seen.append(x)
+                    remaining.remove(x)
+            visited.append(visiting)
+            visiting = seen
+    
+        return visited
+
     def do_turn(self, ants):
-        self.logger.info("Begin Turn")
+        self.info("Begin Turn")
+        self.info((ants.cols, ants.rows))
         
-        # Remove discovered WATER nodes from the base graph
+        # Remove discovered WATER nodes from the obstacle map
         for row in range(ants.rows):
             for col in range(ants.cols):
-                if (row,col) in self.basegraph and ants.map[row][col] == -4:
-                    self.basegraph.remove_node((row,col))
-                    if (row,col) in self.unseen:
-                        self.unseen.remove((row,col))
+                if ants.map[row][col] == -4:
+                    self.obsmap[row][col] = 0
 
-        orders = {}
-        def move_direction(loc, direction):
-            # This library call takes care of map wrapping
-            new_loc = ants.destination(loc, direction)
-            if (ants.unoccupied(new_loc) and new_loc not in orders):
-                orders[new_loc] = loc
-                ants.issue_order((loc, direction))
-                return True
-            else:
-                return False 
+        # Update food lists
+        new_food = ants.food_list
+        for old_food in self.foodtargets:
+            if ants.visible(old_food) and old_food not in new_food:
+                self.foodtargets.remove(old_food)
+        for food in new_food:
+            if food not in self.foodtargets:
+                self.foodtargets.append(food)
 
-        # Returns manhattan distance
-        def manhattan_dist(a, b):
-            (x1, y1) = a
-            (x2, y2) = b
-            return ((x1-x2)**2 + (y1-y2)**2)**0.5
+        for food in self.foodtargets:
+            start_time = time.time()
+            bfs = self.BFS(self.obsmap, food)
+            self.info("bfs took {0}".format(time.time()-start_time))
+            for level in range(len(bfs)):
+                for x,y in bfs[level]:
+                    self.foodmap[x][y] += len(bfs)-level
 
-        targets = {}
-        # Keep track of one target moving towards a location
-        # and moves the ant in that general direction
-        # start == finish == tuple with x,y map coords
-        def move_location(start, finish):
-            if start == finish:
-                return False
+        self.info("Turn over with {0}ms remaining".format(ants.time_remaining()))
 
-            if finish in self.routes and start in self.routes[finish]:
-                # We've already made this path bro! Use that shit!
-                idx = self.routes[finish].index(start)
-                step = self.routes[finish][idx+1]
-            else:
-                # A* seems to take about 10ms per path on avg
-                try:
-                    path = nx.astar_path(self.basegraph, start, finish, manhattan_dist)
-                except nx.NetworkXNoPath: 
-                    return False
-                self.routes[finish] = path
-                step = path[1]
-            if move_direction(start, ants.direction(start, step)[0]):
-                targets[finish] = start
-                return True
-            else:
-                targets[finish] = start
-                return False
 
-        # Don't move onto an anthill ever
-        for hill_loc in ants.my_hills():
-            orders[hill_loc] = None
 
-        # First move priority
-        # Locate all visible food and send one ant towards it
-        ant_dist = []
-        for food_loc in ants.food():
-            for ant_loc in ants.my_ants():
-                dist = ants.distance(ant_loc, food_loc)
-                ant_dist.append((dist, ant_loc, food_loc))
-        ant_dist.sort()
 
-        for dist, ant_loc, food_loc in ant_dist:
-            if food_loc not in targets and ant_loc not in targets.values():
-                self.logger.info("Moving {0} to food {1}".format(ant_loc, food_loc))
-                move_location(ant_loc, food_loc)
-
-        # Second move priority
-        # Attack enemy hills
-#        for hill_loc, hill_owner in ants.enemy_hills():
-#            if hill_loc not in self.hills:
-#                self.hills.append(hill_loc)
-#
-#        ant_dist = []
-#        for hill_loc in self.hills:
-#            for ant_loc in ants.my_ants():
-#                if ant_loc not in orders.values():
-#                    dist = ants.distance(ant_loc, hill_loc)
-#                    ant_dist.append((dist, ant_loc))
-#        ant_dist.sort()
-#        for dist, ant_loc in ant_dist:
-#            self.logger.info("Moving {0} to hill {1}".format(ant_loc, hill_loc))
-#            move_location(ant_loc, hill_loc)
-
-        # Third move priority
-        # Explore the map to reveal non-visible areas
-        for loc in self.unseen[:]:
-            if ants.visible(loc):
-                self.unseen.remove(loc)
-
-        for ant_loc in ants.my_ants(): 
-            if ants.time_remaining() < 100:
-                break
-            if ant_loc not in orders.values():
-                unseen_dist = []
-                for unseen_loc in self.unseen:
-                    if unseen_loc in targets:
-                        continue
-                    dist = ants.distance(ant_loc, unseen_loc)
-                    unseen_dist.append((dist, unseen_loc))
-                unseen_dist.sort()
-                for dist, unseen_loc in unseen_dist:
-                    self.logger.info("Moving {0} to explore {1}".format(ant_loc, unseen_loc))
-                    move_location(ant_loc, unseen_loc)
-                    break
-
-        # Last move priority
-        # Move off the anthill if we are blocking it
-#        for hill_loc in ants.my_hills():
-#            if hill_loc in ants.my_ants() and hill_loc not in orders.values():
-#                for direction in ('s', 'e', 'w', 'n'):
-#                    if move_direction(hill_loc, direction):
-#                        self.logger.info("Moving {0} to off anthill {1}".format(ant_loc, direction))
-#                        break
-            
-        self.logger.info("Turn over with {0}ms remaining".format(ants.time_remaining()))
 
 if __name__ == '__main__':
     # psyco will speed up python a little, but is not needed
