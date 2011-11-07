@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 from ants import *
 import logging as log
+import numpy as np
+from heapq import *
 
 # define a class with a do_turn method
 # the Ants.run method will parse and update bot input
@@ -24,9 +26,9 @@ class MyBot:
             return
 
     def do_setup(self, ants):
-        self.obsmap = [[1 for col in range(ants.cols)] for row in range(ants.rows)]
-        self.foodtargets = []
-        self.foodmap = [[0 for col in range(ants.cols)] for row in range(ants.rows)]
+        self.obsmap = np.ones((ants.rows, ants.cols))
+        self.foodtargets = set()
+        self.foodmap = np.zeros((ants.rows, ants.cols))
         self.rows = ants.rows
         self.cols = ants.cols
 
@@ -56,8 +58,8 @@ class MyBot:
     
         # Create x,y tuple for any loc that isn't 0
         # 0 denotes non-existant nodes
-        for x in range(self.rows):
-            for y in range(self.cols):
+        for x in xrange(self.rows):
+            for y in xrange(self.cols):
                 if (map[x][y]):
                     remaining.add((x,y))
         t = time.time()
@@ -86,29 +88,56 @@ class MyBot:
 
     def do_turn(self, ants):
         self.info("Begin Turn")
+        orders = {}
         
         # Remove discovered WATER nodes from the obstacle map
-        for row in range(ants.rows):
-            for col in range(ants.cols):
+        for row in xrange(ants.rows):
+            for col in xrange(ants.cols):
                 if ants.map[row][col] == -4:
                     self.obsmap[row][col] = 0
 
         # Update food lists
-        new_food = ants.food_list
-        for old_food in self.foodtargets:
-            if ants.visible(old_food) and old_food not in new_food:
-                self.foodtargets.remove(old_food)
-        for food in new_food:
-            if food not in self.foodtargets:
-                self.foodtargets.append(food)
+        visible_food = set(ants.food_list)
+        for unseen in self.foodtargets - visible_food:
+            if ants.visible(unseen):
+                self.foodtargets.remove(unseen)
+        for new_food in visible_food - self.foodtargets:
+            self.foodtargets.add(new_food)
 
         for food in self.foodtargets:
             start_time = time.time()
             bfs = self.BFS(self.obsmap, food)
             self.info("bfs took {0}".format(time.time()-start_time))
-            for level in range(len(bfs)):
+            for level in xrange(len(bfs)):
                 for x,y in bfs[level]:
                     self.foodmap[x][y] += len(bfs)-level
+
+        def move_ant(self, ant, map):
+            adj = []
+            old_x, old_y = ant
+            for x,y,direction in [(0,1,'e'),(1,0,'s'),(0,-1,'w'),(-1,0,'n')]:
+                new_x = x + old_x
+                if new_x > self.cols-1:
+                    new_x -= self.cols
+                if new_x < 0:
+                    new_x += self.cols
+                new_y = y + old_y
+                if new_y > self.rows-1:
+                    new_y -= self.rows
+                if new_y < 0:
+                    new_y += self.rows
+                if map[new_x][new_y] and (new_x,new_y) not in orders:
+                    adj.append((map[new_x][new_y], direction))
+
+            adj.sort()
+            self.info(adj)
+            desire,direction = adj[-1]
+            self.info("Moving ant {0} {1}".format(ant, direction))
+            ants.issue_order((ant, direction))
+            orders[ants.destination(ant, direction)] = ant
+
+        for ant in ants.my_ants():
+            move_ant(self, ant, self.foodmap)
 
         self.info("Turn over with {0}ms remaining".format(ants.time_remaining()))
 
