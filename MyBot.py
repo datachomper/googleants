@@ -31,7 +31,7 @@ class MyBot:
         self.foodtargets = set()
         self.rows = ants.rows
         self.cols = ants.cols
-        self.image = 2
+        self.image = 44
     
     def write_png(self, costmap):
         import Image
@@ -74,7 +74,7 @@ class MyBot:
     def do_turn(self, ants):
         self.info("Begin Turn {0}".format(self.turn))
         orders = {}
-        foodmap = [[-1 for c in xrange(ants.cols)] for c in xrange(ants.rows)]
+        foodmap = [[255 for c in xrange(ants.cols)] for c in xrange(ants.rows)]
         
         # Remove discovered WATER nodes from the obstacle map
         for row in xrange(ants.rows):
@@ -93,11 +93,18 @@ class MyBot:
         for food in self.foodtargets:
             start_time = time.time()
             bfs = [[self.obsmap[r][c] for c in xrange(self.cols)] for r in xrange(self.rows)]
+            for x,y in ants.my_ants():
+                bfs[x][y] = 0
             self.diffuse(bfs, food)
             self.info("bfs took {0} for food {1}".format(time.time()-start_time, food))
             for r in xrange(self.rows):
                 for c in xrange(self.cols):
-                    foodmap[r][c] += bfs[r][c]
+                    if bfs[r][c] > 0:
+                        foodmap[r][c] = min(foodmap[r][c],bfs[r][c])
+                        #foodmap[r][c] *= bfs[r][c]
+                        #foodmap[r][c] += bfs[r][c]
+                    else:
+                        foodmap[r][c] = 0
         if (self.image == self.turn):
             self.write_png(foodmap)
             self.image = None
