@@ -83,13 +83,12 @@ class MyBot:
                     self.obsmap[row][col] = 0
 
         # Update food lists
-#        visible_food = set(ants.food())
-#        for unseen in self.foodtargets - visible_food:
-#            if ants.visible(unseen):
-#                self.foodtargets.remove(unseen)
-#        for new_food in visible_food - self.foodtargets:
-#            self.foodtargets.add(new_food)
-        self.foodtargets = ants.food()
+        visible_food = set(ants.food())
+        for unseen in (self.foodtargets-visible_food):
+            if ants.visible(unseen):
+                self.foodtargets.remove(unseen)
+        for new_food in (visible_food-self.foodtargets):
+            self.foodtargets.add(new_food)
 
         for food in self.foodtargets:
             start_time = time.time()
