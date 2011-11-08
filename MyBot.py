@@ -26,32 +26,53 @@ class MyBot:
             return
 
     def do_setup(self, ants):
+        self.turn = 0
         self.obsmap = [[-1 for c in xrange(ants.cols)] for c in xrange(ants.rows)]
         self.foodtargets = set()
         self.rows = ants.rows
         self.cols = ants.cols
+        self.image = 2
+    
+    def write_png(self, costmap):
+        import Image
+        pix = Image.new("RGB",(self.cols,self.rows))
+        upper = 1
+        lower = 0
+        for r in range(self.rows):
+            for c in range(self.cols):
+                upper = max(upper, costmap[r][c])
+        for r in range(self.rows):
+            for c in range(self.cols):
+                value = costmap[r][c]
+                if value == 0:
+                    color = (0,0,0)
+                elif value == -1:
+                    color = (240,240,240)
+                else:
+                    color = (255-int(255*((1.0*costmap[r][c]-lower)/(upper-lower))),255,255)
+                pix.putpixel((c,r),color)
+        pix.save("foo.bmp")
 
     def neighbors(self, (row,col)):
         dir = [(-1,0),(0,1),(1,0),(0,-1)]
         return [((row+r)%self.rows,(col+c)%self.cols) for r,c in dir]
 
-    def diffuse(self, map, target):
+    def diffuse(self, m, target):
         x,y = target
         visiting = []
         visiting.append((1,target))
-        map[x][y] = 1
+        m[x][y] = 1
         
         for level,(node_x,node_y) in visiting:
             for (child_x,child_y) in self.neighbors((node_x,node_y)):
-                if map[child_x][child_y] == 0:
+                if m[child_x][child_y] == 0:
                     continue
-                if map[child_x][child_y] == -1:
-                    map[child_x][child_y] = level+1
+                if m[child_x][child_y] == -1:
+                    m[child_x][child_y] = level+1
                     visiting.append((level+1,(child_x,child_y))) 
-        return map
 
     def do_turn(self, ants):
-        self.info("Begin Turn")
+        self.info("Begin Turn {0}".format(self.turn))
         orders = {}
         foodmap = [[-1 for c in xrange(ants.cols)] for c in xrange(ants.rows)]
         
@@ -72,11 +93,15 @@ class MyBot:
 
         for food in self.foodtargets:
             start_time = time.time()
-            bfs = self.diffuse(self.obsmap, food)
-            self.info("bfs took {0}".format(time.time()-start_time))
+            bfs = [[self.obsmap[r][c] for c in xrange(self.cols)] for r in xrange(self.rows)]
+            self.diffuse(bfs, food)
+            self.info("bfs took {0} for food {1}".format(time.time()-start_time, food))
             for r in xrange(self.rows):
                 for c in xrange(self.cols):
                     foodmap[r][c] += bfs[r][c]
+        if (self.image == self.turn):
+            self.write_png(foodmap)
+            self.image = None
 
         def move_ant(self, ant, map):
             valid_moves = []
@@ -95,6 +120,7 @@ class MyBot:
             move_ant(self, ant, foodmap)
 
         self.info("Turn over with {0}ms remaining".format(ants.time_remaining()))
+        self.turn += 1
 
 
 
