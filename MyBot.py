@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 from ants import *
 import logging as log
-import numpy as np
-from heapq import *
 
 # define a class with a do_turn method
 # the Ants.run method will parse and update bot input
@@ -31,7 +29,7 @@ class MyBot:
         self.foodtargets = set()
         self.rows = ants.rows
         self.cols = ants.cols
-        self.image = 44
+        self.image = 135
     
     def write_png(self, costmap):
         import Image
@@ -133,13 +131,6 @@ class MyBot:
 
 
 if __name__ == '__main__':
-    # psyco will speed up python a little, but is not needed
-    try:
-        import psyco
-        psyco.full()
-    except ImportError:
-        pass
-    
     try:
         # if run is passed a class with a do_turn method, it will do the work
         # this is not needed, in which case you will need to write your own
