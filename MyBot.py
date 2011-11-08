@@ -50,11 +50,10 @@ class MyBot:
                 adj.add((new_x, new_y))
         return adj
     
-    def BFS(self, map, target):
+    def diffuse(self, map, target):
         visited = []
         visiting = set()
         remaining = set()
-        t = time.time()
     
         # Create x,y tuple for any loc that isn't 0
         # 0 denotes non-existant nodes
@@ -62,20 +61,15 @@ class MyBot:
             for y in xrange(self.cols):
                 if (map[x][y]):
                     remaining.add((x,y))
-        t = time.time()
     
         if target not in remaining:
             return []
     
-        t = time.time()
-
         visiting.add(target)
         remaining.remove(target)
         # Visit every node on current level, store its children
         # in seen list
-        t = time.time()
         while visiting != set([]):
-            t = time.time()
             seen = set()
             for node in visiting:
                 for x in self.neighbors(remaining, node):
