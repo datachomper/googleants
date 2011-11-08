@@ -26,7 +26,7 @@ class MyBot:
             return
 
     def do_setup(self, ants):
-        self.obsmap = [[1 for c in xrange(ants.cols)] for c in xrange(ants.rows)]
+        self.obsmap = [[-1 for c in xrange(ants.cols)] for c in xrange(ants.rows)]
         self.foodtargets = set()
         self.rows = ants.rows
         self.cols = ants.cols
@@ -53,7 +53,7 @@ class MyBot:
     def do_turn(self, ants):
         self.info("Begin Turn")
         orders = {}
-        self.foodmap = [[-1 for c in xrange(ants.cols)] for c in xrange(ants.rows)]
+        foodmap = [[-1 for c in xrange(ants.cols)] for c in xrange(ants.rows)]
         
         # Remove discovered WATER nodes from the obstacle map
         for row in xrange(ants.rows):
@@ -62,12 +62,13 @@ class MyBot:
                     self.obsmap[row][col] = 0
 
         # Update food lists
-        visible_food = set(ants.food_list)
-        for unseen in self.foodtargets - visible_food:
-            if ants.visible(unseen):
-                self.foodtargets.remove(unseen)
-        for new_food in visible_food - self.foodtargets:
-            self.foodtargets.add(new_food)
+#        visible_food = set(ants.food())
+#        for unseen in self.foodtargets - visible_food:
+#            if ants.visible(unseen):
+#                self.foodtargets.remove(unseen)
+#        for new_food in visible_food - self.foodtargets:
+#            self.foodtargets.add(new_food)
+        self.foodtargets = ants.food()
 
         for food in self.foodtargets:
             start_time = time.time()
@@ -75,7 +76,7 @@ class MyBot:
             self.info("bfs took {0}".format(time.time()-start_time))
             for r in xrange(self.rows):
                 for c in xrange(self.cols):
-                    self.foodmap[r][c] += bfs[r][c]
+                    foodmap[r][c] += bfs[r][c]
 
         def move_ant(self, ant, map):
             valid_moves = []
@@ -84,13 +85,14 @@ class MyBot:
                     valid_moves.append((map[x][y],(x,y))) 
             if valid_moves:
                 valid_moves.sort()
+                self.info("vmoves ant {0}:{1}".format(ant, valid_moves))
                 nada, loc = valid_moves[0]
                 ants.issue_order((ant, ants.direction(ant, loc)[0]))
                 self.info("Moving ant {0} {1}".format(ant, ants.direction(ant, loc)))
                 orders[loc] = ant
 
         for ant in ants.my_ants():
-            move_ant(self, ant, self.foodmap)
+            move_ant(self, ant, foodmap)
 
         self.info("Turn over with {0}ms remaining".format(ants.time_remaining()))
 
