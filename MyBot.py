@@ -26,63 +26,34 @@ class MyBot:
             return
 
     def do_setup(self, ants):
-        self.obsmap = np.ones((ants.rows, ants.cols))
+        self.obsmap = [[1 for c in xrange(ants.cols)] for c in xrange(ants.rows)]
         self.foodtargets = set()
-        self.foodmap = np.zeros((ants.rows, ants.cols))
         self.rows = ants.rows
         self.cols = ants.cols
 
-    def neighbors(self, loc_list, target):
-        adj = set()
-        old_x, old_y = target
-        for x,y in [(0,1),(1,0),(0,-1),(-1,0)]:
-            new_x = x + old_x
-            if new_x > self.cols-1:
-                new_x -= self.cols
-            if new_x < 0:
-                new_x += self.cols
-            new_y = y + old_y
-            if new_y > self.rows-1:
-                new_y -= self.rows
-            if new_y < 0:
-                new_y += self.rows
-            if (new_x,new_y) in loc_list:
-                adj.add((new_x, new_y))
-        return adj
-    
+    def neighbors(self, (row,col)):
+        dir = [(-1,0),(0,1),(1,0),(0,-1)]
+        return [((row+r)%self.rows,(col+c)%self.cols) for r,c in dir]
+
     def diffuse(self, map, target):
-        visited = []
-        visiting = set()
-        remaining = set()
-    
-        # Create x,y tuple for any loc that isn't 0
-        # 0 denotes non-existant nodes
-        for x in xrange(self.rows):
-            for y in xrange(self.cols):
-                if (map[x][y]):
-                    remaining.add((x,y))
-    
-        if target not in remaining:
-            return []
-    
-        visiting.add(target)
-        remaining.remove(target)
-        # Visit every node on current level, store its children
-        # in seen list
-        while visiting != set([]):
-            seen = set()
-            for node in visiting:
-                for x in self.neighbors(remaining, node):
-                    seen.add(x)
-                    remaining.remove(x)
-            visited.append(visiting)
-            visiting = seen
-    
-        return visited
+        x,y = target
+        visiting = []
+        visiting.append((1,target))
+        map[x][y] = 1
+        
+        for level,(node_x,node_y) in visiting:
+            for (child_x,child_y) in self.neighbors((node_x,node_y)):
+                if map[child_x][child_y] == 0:
+                    continue
+                if map[child_x][child_y] == -1:
+                    map[child_x][child_y] = level+1
+                    visiting.append((level+1,(child_x,child_y))) 
+        return map
 
     def do_turn(self, ants):
         self.info("Begin Turn")
         orders = {}
+        self.foodmap = [[-1 for c in xrange(ants.cols)] for c in xrange(ants.rows)]
         
         # Remove discovered WATER nodes from the obstacle map
         for row in xrange(ants.rows):
@@ -100,35 +71,23 @@ class MyBot:
 
         for food in self.foodtargets:
             start_time = time.time()
-            bfs = self.BFS(self.obsmap, food)
+            bfs = self.diffuse(self.obsmap, food)
             self.info("bfs took {0}".format(time.time()-start_time))
-            for level in xrange(len(bfs)):
-                for x,y in bfs[level]:
-                    self.foodmap[x][y] += len(bfs)-level
+            for r in xrange(self.rows):
+                for c in xrange(self.cols):
+                    self.foodmap[r][c] += bfs[r][c]
 
         def move_ant(self, ant, map):
-            adj = []
-            old_x, old_y = ant
-            for x,y,direction in [(0,1,'e'),(1,0,'s'),(0,-1,'w'),(-1,0,'n')]:
-                new_x = x + old_x
-                if new_x > self.cols-1:
-                    new_x -= self.cols
-                if new_x < 0:
-                    new_x += self.cols
-                new_y = y + old_y
-                if new_y > self.rows-1:
-                    new_y -= self.rows
-                if new_y < 0:
-                    new_y += self.rows
-                if map[new_x][new_y] and (new_x,new_y) not in orders:
-                    adj.append((map[new_x][new_y], direction))
-
-            adj.sort()
-            self.info(adj)
-            desire,direction = adj[-1]
-            self.info("Moving ant {0} {1}".format(ant, direction))
-            ants.issue_order((ant, direction))
-            orders[ants.destination(ant, direction)] = ant
+            valid_moves = []
+            for x,y in self.neighbors(ant):
+                if map[x][y] > 0 and (x,y) not in orders:
+                    valid_moves.append((map[x][y],(x,y))) 
+            if valid_moves:
+                valid_moves.sort()
+                nada, loc = valid_moves[0]
+                ants.issue_order((ant, ants.direction(ant, loc)[0]))
+                self.info("Moving ant {0} {1}".format(ant, ants.direction(ant, loc)))
+                orders[loc] = ant
 
         for ant in ants.my_ants():
             move_ant(self, ant, self.foodmap)
