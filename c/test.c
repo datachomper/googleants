@@ -46,20 +46,20 @@ struct point neighbor(int row, int col, enum DIRECTION dir)
 
 	switch(dir) {
 	case n:
-		p.x = (ROWS+row-1)%ROWS;
+		p.x = (row == 0) ? ROWS-1 : row-1;
 		p.y = col;
 		return p;
 	case e:
 		p.x = row;
-		p.y = (COLS+col+1)%COLS;
+		p.y = (col == COLS-1) ? 0 : col+1;
 		return p;
 	case s:
-		p.x = (ROWS+row+1)%ROWS;
+		p.x = (row == ROWS-1) ? 0 : row+1;
 		p.y = col;
 		return p;
 	case w:
 		p.x = row;
-		p.y = (COLS+col-1)%COLS;
+		p.y = (col == 0) ? COLS-1 : col-1;
 		return p;
 	}
 }
@@ -70,21 +70,25 @@ int neighbor2(int row, int col, enum DIRECTION dir)
 
 	switch(dir) {
 	case n:
-		x = (ROWS+row-1)%ROWS;
-		y = col;
-		return loc(x,y);
+		if (row == 0)
+			return loc(ROWS-1, col);
+		else
+			return loc(row-1, col);
 	case e:
-		x = row;
-		y = (COLS+col+1)%COLS;
-		return loc(x,y);
+		if (col == COLS-1)
+			return loc(row, 0);
+		else
+			return loc(row, col+1);
 	case s:
-		x = (ROWS+row+1)%ROWS;
-		y = col;
-		return loc(x,y);
+		if (row == ROWS-1)
+			return loc(0, col);
+		else
+			return loc(row+1, col);
 	case w:
-		x = row;
-		y = (COLS+col-1)%COLS;
-		return loc(x,y);
+		if (col == 0)
+			return loc(row, COLS-1);
+		else
+			return loc(row, col-1);
 	}
 }
 
@@ -158,6 +162,7 @@ int main(void)
 		map[r] = malloc(COLS*sizeof(int));	
 
 	/* Benchmarking */
+#if 1
 	start = clock();
 	for(iter=0; iter < 100; iter++) {
 		for(r=0; r<ROWS; r++)
@@ -186,24 +191,14 @@ int main(void)
 //	print_map2(map2);
 	elapsed = ((double)(end-start))/CLOCKS_PER_SEC;
 	printf("%fs per diffusion2\n", elapsed/100);
+#endif
+#if 0
 
 	/* Visualize */
-#if 0
 	for(r=0; r<ROWS; r++)
 		for(c=0; c<COLS; c++)
 			map[r][c] = 255;
-	map[2][2] = 1;
-	map[17][17] = 1;
-	map[0][10] = 0;
-	map[1][10] = 0;
-	map[2][10] = 0;
-	map[3][10] = 0;
-	map[4][10] = 0;
-	map[5][10] = 0;
-	map[6][10] = 0;
-	map[7][10] = 0;
-	map[8][10] = 0;
-	print_map(map);
+	map[0][0] = 1;
 	diffuse_iter(map);
 	print_map(map);
 
@@ -211,7 +206,6 @@ int main(void)
 	for(r=0; r<ROWS; r++)
 		for(c=0; c<COLS; c++)
 			map2[loc(r,c)] = 255;
-	print_map2(map2);
 	map2[loc(0,0)] = 1;
 	diffuse_iter2(map2);
 	printf("\n");
