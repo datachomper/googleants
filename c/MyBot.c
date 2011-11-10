@@ -37,6 +37,7 @@ int main(int argc, char *argv[]) {
     struct game_state Game;
     Info.map = 0;
 
+    Game.turn = 0;
     Game.my_ants = 0;
     Game.enemy_ants = 0;
     Game.food = 0;

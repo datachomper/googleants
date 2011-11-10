@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <time.h>
 
 // this header is basically self-documenting
 
@@ -36,6 +37,7 @@ struct food {
 };
 
 struct game_state {
+	int turn;
     struct my_ant *my_ants;
     struct basic_ant *enemy_ants;
     struct food *food;

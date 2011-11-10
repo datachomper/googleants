@@ -78,6 +78,8 @@ void _init_game(struct game_info *game_info, struct game_state *game_state) {
     int food_count = 0;
     int dead_count = 0;
     int i, j;
+    	
+    	game_state->turn++;
 
 	if (game_state->obsmap == 0) {
 		game_state->obsmap = malloc(ROWS*COLS*sizeof(int));
@@ -88,9 +90,15 @@ void _init_game(struct game_info *game_info, struct game_state *game_state) {
 		game_state->antsmap = malloc(ROWS*COLS*sizeof(int));
 		for (i=0; i<map_len; i++)
 			game_state->antsmap[i] = 255;
+	} else {
+		for (i=0; i<map_len; i++)
+			game_state->antsmap[i] = 255;
 	}
 	if (game_state->foodmap == 0) {
 		game_state->foodmap = malloc(ROWS*COLS*sizeof(int));
+		for (i=0; i<map_len; i++)
+			game_state->foodmap[i] = 255;
+	} else {
 		for (i=0; i<map_len; i++)
 			game_state->foodmap[i] = 255;
 	}
@@ -99,7 +107,7 @@ void _init_game(struct game_info *game_info, struct game_state *game_state) {
         char current = game_info->map[i];
 
         if (current == '?' || current == '.') {
-            continue;
+			game_state->obsmap[i] = 1;
 	} else if (current == '%') {
 			game_state->obsmap[i] = 0;
 			game_state->antsmap[i] = 0;
@@ -109,6 +117,8 @@ void _init_game(struct game_info *game_info, struct game_state *game_state) {
             ++food_count;
         } else if (current == 'a') {
 			game_state->antsmap[i] = 1;
+			game_state->obsmap[i] = 0;
+			game_state->foodmap[i] = 0;
             ++my_count;
         } else if (current > 64 && current < 91)
             ++dead_count;

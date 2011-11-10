@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 #include "ants.h"
 
 enum DIRECTION { n,e,s,w };
@@ -123,7 +122,7 @@ int turn = 1;
 void do_turn(struct game_state *Game, struct game_info *Info) {
 	int i, child, dir;
 	int lowest, lowest_dir;
-	fprintf(stderr, "Doing turn\n");
+	fprintf(stderr, "Doing turn %d\n", Game->turn);
 
 	diffuse_iter(Game->foodmap);
 	if (turn) {
@@ -141,7 +140,7 @@ void do_turn(struct game_state *Game, struct game_info *Info) {
 				lowest_dir = dir;
 			}
 		}
+		fprintf(stderr, "Moving ant %d %c val %d\n",i,direction(lowest_dir),lowest);
 		move(i, direction(lowest_dir), Game);
 	}
-
 }
