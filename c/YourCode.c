@@ -65,7 +65,7 @@ void diffuse_iter(int *map)
 					int tmp;
 					tmp = neighbor(r, c, dir);
 					childval = map[tmp];
-					if ((childval != 0) && (lowest > childval+1))
+					if ((childval) && (lowest > childval+1))
 						lowest = childval+1;
 				}
 				if (lowest < map[loc(r,c)]) {
@@ -78,13 +78,21 @@ void diffuse_iter(int *map)
 }
 
 void do_turn(struct game_state *Game, struct game_info *Info) {
-    int r,c,i;
+    int i, child, dir;
+	int lowest, lowest_dir;
 	print_map(Game->foodmap);
 	diffuse_iter(Game->foodmap);
 	print_map(Game->foodmap);
-/*
-    for (i = 0; i < Game->my_count; ++i) {
+    for (i=0; i<Game->my_count; i++) {
+		struct my_ant ant = Game->my_ants[i];
+		lowest = 255;
+		for (dir=0; dir<4; dir++) {
+			child = Game->foodmap[neighbor(ant.row, ant.col, dir)];
+			if (child && (lowest > child)) {
+				lowest = child;	
+				lowest_dir = dir;
+			}
+		}
 	}
-*/
 
 }
