@@ -122,6 +122,9 @@ void _init_game(struct game_info *game_info, struct game_state *game_state) {
 			game_state->obsmap[i] = 0;
 			game_state->foodmap[i] = 0;
             ++my_count;
+//	} else if (current == 'h') {
+			//game_state->obsmap[i] = 0;
+			//game_state->foodmap[i] = 255;
         } else if (current > 64 && current < 91)
             ++dead_count;
         else
@@ -288,6 +291,10 @@ void _init_map(char *data, struct game_info *game_info) {
             case 'f':
                 game_info->map[offset] = '*';
                 break;
+	    case 'h':
+		if (game_info->map[offset] == '.')
+			game_info->map[offset] = 'h';
+		break;
         }
 
         data = tmp_ptr + 1;
