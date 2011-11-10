@@ -10,6 +10,47 @@ int loc(int x, int y)
 	return (x*COLS+y);
 }
 
+char direction(short d)
+{
+	if (d == 0)
+		return 'n';
+	if (d == 1)
+		return 'e';
+	if (d == 2)
+		return 's';
+	if (d == 3)
+		return 'w';
+}
+
+void write_img(int *map, const char *name)
+{
+	FILE *fp;
+	int r,c,val,max;
+
+	max = 1;
+	for (r=0; r<ROWS; r++)
+		for (c=0; c<COLS; c++)
+			max = (map[loc(r,c)] > max) ? map[loc(r,c)] : max;
+
+	fp = fopen(name, "w");
+	fprintf(fp, "P3\n%d %d\n255\n", COLS, ROWS);
+	for (r=0; r<ROWS; r++) {
+		for (c=0; c<COLS; c++) {
+			val = map[loc(r,c)];
+			if (!val)
+				fprintf(fp, "%03d %03d %03d ",0,0,0);
+			else if (val == 1)
+				fprintf(fp, "%03d %03d %03d ",255,0,0);
+			else {
+				val = 255*(val-1)/(max-1);
+				fprintf(fp, "%03d %03d %03d ", val, 255, 255);
+			}
+		}
+		fprintf(fp, "\n");
+	}
+	fclose(fp);
+}
+
 void print_map(int *map)
 {
 	int r,c;
@@ -77,13 +118,20 @@ void diffuse_iter(int *map)
 	}
 }
 
+int turn = 1;
+
 void do_turn(struct game_state *Game, struct game_info *Info) {
-    int i, child, dir;
+	int i, child, dir;
 	int lowest, lowest_dir;
-	print_map(Game->foodmap);
+	fprintf(stderr, "Doing turn\n");
+
 	diffuse_iter(Game->foodmap);
-	print_map(Game->foodmap);
-    for (i=0; i<Game->my_count; i++) {
+	if (turn) {
+		write_img(Game->foodmap, "foodmap_turn1.pnm");
+		turn = 0;
+	}
+
+	for (i=0; i<Game->my_count; i++) {
 		struct my_ant ant = Game->my_ants[i];
 		lowest = 255;
 		for (dir=0; dir<4; dir++) {
@@ -93,6 +141,7 @@ void do_turn(struct game_state *Game, struct game_info *Info) {
 				lowest_dir = dir;
 			}
 		}
+		move(i, direction(lowest_dir), Game);
 	}
 
 }

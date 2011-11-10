@@ -2,7 +2,7 @@
 
 enum STATE {GO, READY};
 
-void move(int index, char dir, struct game_state* Game, struct game_info* Info) {
+void move(int index, char dir, struct game_state* Game) {
     fprintf(stdout, "O %i %i %c\n", Game->my_ants[index].row, Game->my_ants[index].col, dir);
 }
 
@@ -103,7 +103,7 @@ int main(int argc, char *argv[]) {
             _init_game(&Info, &Game);
             do_turn(&Game, &Info);
             fprintf(stdout, "go\n");
-            fflush(stdout);
+            fflush(NULL);
         }
         else if (action == READY) {
             _init_ants(data + 1, &Info);
@@ -113,7 +113,7 @@ int main(int argc, char *argv[]) {
             Game.my_ant_index = -1;
 
             fprintf(stdout, "go\n");
-            fflush(stdout);
+            fflush(NULL);
         }
 
         free(data);

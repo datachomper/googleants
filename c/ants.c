@@ -98,9 +98,9 @@ void _init_game(struct game_info *game_info, struct game_state *game_state) {
     for (i = 0; i < map_len; ++i) {
         char current = game_info->map[i];
 
-        if (current == '?' || current == '.')
+        if (current == '?' || current == '.') {
             continue;
-		else if (current == '%') {
+	} else if (current == '%') {
 			game_state->obsmap[i] = 0;
 			game_state->antsmap[i] = 0;
 			game_state->foodmap[i] = 0;
