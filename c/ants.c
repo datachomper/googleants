@@ -97,17 +97,19 @@ void _init_game(struct game_info *game_info, struct game_state *game_state) {
 	if (game_state->foodmap == 0) {
 		game_state->foodmap = malloc(ROWS*COLS*sizeof(int));
 		for (i=0; i<map_len; i++)
-			game_state->foodmap[i] = 255;
+			game_state->foodmap[i] = 1;
 	} else {
 		for (i=0; i<map_len; i++)
-			game_state->foodmap[i] = 255;
+			game_state->foodmap[i] = 1;
 	}
 
     for (i = 0; i < map_len; ++i) {
         char current = game_info->map[i];
 
-        if (current == '?' || current == '.') {
+        if (current == '?') {
+	} else if (current == '.') {
 			game_state->obsmap[i] = 1;
+			game_state->foodmap[i] = 255;
 	} else if (current == '%') {
 			game_state->obsmap[i] = 0;
 			game_state->antsmap[i] = 0;

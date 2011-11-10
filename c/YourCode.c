@@ -122,6 +122,8 @@ int turn = 1;
 void do_turn(struct game_state *Game, struct game_info *Info) {
 	int i, child, dir;
 	int lowest, lowest_dir;
+	int orders[ROWS*COLS];
+
 	fprintf(stderr, "Doing turn %d\n", Game->turn);
 
 	diffuse_iter(Game->foodmap);
@@ -142,5 +144,7 @@ void do_turn(struct game_state *Game, struct game_info *Info) {
 		}
 		fprintf(stderr, "Moving ant %d %c val %d\n",i,direction(lowest_dir),lowest);
 		move(i, direction(lowest_dir), Game);
+		Game->foodmap[neighbor(ant.row, ant.col, lowest_dir)] = 0;
+		Game->foodmap[loc(ant.row, ant.col)] = 255;
 	}
 }
