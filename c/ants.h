@@ -47,4 +47,10 @@ struct game_state {
     int dead_count;
 
     int my_ant_index;
+	int *obsmap;
+	int *antsmap;
+	int *foodmap;
 };
+
+int ROWS;
+int COLS;
