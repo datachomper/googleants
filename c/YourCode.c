@@ -78,16 +78,11 @@ void diffuse_iter(int *map)
 }
 
 void do_turn(struct game_state *Game, struct game_info *Info) {
-	fprintf(stderr, "herp derp!\n");
-/*
     int r,c,i;
-	for (r=0; r < ROWS; r++) {
-		for (c=0; c < COLS; c++) {
-
-		}
-	}
-	print_map(Info->obsmap);
-
+	print_map(Game->foodmap);
+	diffuse_iter(Game->foodmap);
+	print_map(Game->foodmap);
+/*
     for (i = 0; i < Game->my_count; ++i) {
 	}
 */

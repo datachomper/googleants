@@ -79,16 +79,38 @@ void _init_game(struct game_info *game_info, struct game_state *game_state) {
     int dead_count = 0;
     int i, j;
 
+	if (game_state->obsmap == 0) {
+		game_state->obsmap = malloc(ROWS*COLS*sizeof(int));
+		for (i=0; i<map_len; i++)
+			game_state->obsmap[i] = 1;
+	}
+	if (game_state->antsmap == 0) {
+		game_state->antsmap = malloc(ROWS*COLS*sizeof(int));
+		for (i=0; i<map_len; i++)
+			game_state->antsmap[i] = 255;
+	}
+	if (game_state->foodmap == 0) {
+		game_state->foodmap = malloc(ROWS*COLS*sizeof(int));
+		for (i=0; i<map_len; i++)
+			game_state->foodmap[i] = 255;
+	}
+
     for (i = 0; i < map_len; ++i) {
         char current = game_info->map[i];
 
-        if (current == '?' || current == '.' || current == '%')
+        if (current == '?' || current == '.')
             continue;
-        else if (current == '*')
+		else if (current == '%') {
+			game_state->obsmap[i] = 0;
+			game_state->antsmap[i] = 0;
+			game_state->foodmap[i] = 0;
+        } else if (current == '*') {
+			game_state->foodmap[i] = 1;
             ++food_count;
-        else if (current == 'a')
+        } else if (current == 'a') {
+			game_state->antsmap[i] = 1;
             ++my_count;
-        else if (current > 64 && current < 91)
+        } else if (current > 64 && current < 91)
             ++dead_count;
         else
             ++enemy_count;
