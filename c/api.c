@@ -2,17 +2,18 @@
 #include <stdio.h>
 #include <strings.h>
 #include "api.h"
-#include "simclist.h"
+
+extern void do_turn(struct Game *game);
 
 char direction(short d)
 {
 	if (d == 0)
 		return 'N';
-	if (d == 1)
+	else if (d == 1)
 		return 'E';
-	if (d == 2)
+	else if (d == 2)
 		return 'S';
-	if (d == 3)
+	else
 		return 'W';
 }
 
@@ -23,8 +24,6 @@ int loc(int x, int y)
 
 int neighbor(int row, int col, enum DIRECTION dir)
 {
-	int x,y;
-
 	switch(dir) {
 	case N:
 		if (row == 0)
@@ -47,6 +46,7 @@ int neighbor(int row, int col, enum DIRECTION dir)
 		else
 			return loc(row, col-1);
 	}
+	return 0;
 }
 
 void do_setup(struct Game *game)
