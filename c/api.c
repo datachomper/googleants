@@ -98,9 +98,10 @@ int main()
 	char *index;
 	char *arg[4];
 	int arg_num;
+	char *nada;
 
 	while (1) {
-		fgets(buf, sizeof(buf), stdin);
+		nada = fgets(buf, sizeof(buf), stdin);
 
 		index = buf;
 		arg_num = 0;
