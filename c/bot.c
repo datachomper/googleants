@@ -134,4 +134,6 @@ void do_turn(struct Game *game)
 			}
 		}
 	}
+	free(map);
+	free(viewmap);
 }

@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <strings.h>
+#include <string.h>
 #include "api.h"
 
 extern void do_turn(struct Game *game);
@@ -62,7 +62,7 @@ void do_setup(struct Game *game)
 	game->antmap = malloc(MAPSIZ);
 	game->hillmap = malloc(MAPSIZ);
 
-	for(i=0; i<MAPSIZ; i++) {
+	for(i=0; i<ROWS*COLS; i++) {
 		game->watermap[i] = 0;
 		game->foodmap[i] = 0;
 		game->antmap[i] = 0;
@@ -78,7 +78,7 @@ void order(int row, int col, enum DIRECTION dir)
 void do_preturn(struct Game *game)
 {
 	int i;
-	for(i=0; i<MAPSIZ; i++) {
+	for(i=0; i<ROWS*COLS; i++) {
 		game->foodmap[i] = 0;
 		game->antmap[i] = 0;
 		game->hillmap[i] = 0;
@@ -88,6 +88,10 @@ void do_preturn(struct Game *game)
 void do_cleanup(struct Game *game)
 {
 	fflush(NULL);
+	free(game->watermap);
+	free(game->foodmap);
+	free(game->antmap);
+	free(game->hillmap);
 	free(game);
 }
 
@@ -98,15 +102,12 @@ int main()
 	char *index;
 	char *arg[4];
 	int arg_num;
-	char *nada;
 
-	while (1) {
-		nada = fgets(buf, sizeof(buf), stdin);
-
+	while (fgets(buf, sizeof(buf), stdin) != NULL) {
 		index = buf;
 		arg_num = 0;
 		arg[arg_num] = index;
-		for (;*index != '\n'; index++) {
+		for (;(*index != '\n'); index++) {
 			if (*index == ' ') {
 				*index = '\0';
 				arg[arg_num+1] = index+1;
@@ -125,8 +126,7 @@ int main()
 				game->state = SETUP;
 			}
 		} else if (!strcmp(arg[0], "end")) {
-			do_cleanup(game);
-			return 0;
+			break;
 		}
 
 		if (game->state == SETUP) {
@@ -189,5 +189,6 @@ int main()
 			}
 		}
 	}
+	do_cleanup(game);
 	return 0;
 }
