@@ -1,19 +1,7 @@
-CC=gcc
-CFLAGS=-O3 -funroll-loops -c
-LDFLAGS=-O2
-LDLIBS=-lm
-SOURCES=MyBot.c YourCode.c ants.c
-HEADERS=ants.h
-OBJECTS=$(addsuffix .o, $(basename ${SOURCES}))
-EXECUTABLE=MyBot
-
-all: $(EXECUTABLE)
-
-$(EXECUTABLE): $(OBJECTS)
-
-$(OBJECTS): %.o: %.c $(HEADERS)
+all:
+	gcc -03 -funroll-loops api.c simclist.c -o MyBot
 
 clean:
-	rm -f $(EXECUTABLE) $(OBJECTS)
+	rm -f MyBot api.o simclist.o
 
 .PHONY: all clean
