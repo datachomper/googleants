@@ -1,17 +1,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <strings.h>
+#include "api.h"
 #include "simclist.h"
-
-enum STATE {SETUP, INGAME, END};
-enum DIRECTION { N,E,S,W };
-
-int ROWS, COLS;
-
-int loc(int x, int y)
-{
-	return (x*COLS+y);
-}
 
 char direction(short d)
 {
@@ -25,24 +16,38 @@ char direction(short d)
 		return 'W';
 }
 
-struct Game {
-	enum STATE state;	
-	int turn;
-	int loadtime;
-	int turntime;
-	int rows;
-	int cols;
-	int turns;
-	int viewradius2;
-	int attackradius2;
-	int spawnradius2;
-	int player_seed;
+int loc(int x, int y)
+{
+	return (x*COLS+y);
+}
 
-	int *watermap;
-	int *foodmap;
-	int *antmap;
-	int *hillmap;
-};
+int neighbor(int row, int col, enum DIRECTION dir)
+{
+	int x,y;
+
+	switch(dir) {
+	case N:
+		if (row == 0)
+			return loc(ROWS-1, col);
+		else
+			return loc(row-1, col);
+	case E:
+		if (col == COLS-1)
+			return loc(row, 0);
+		else
+			return loc(row, col+1);
+	case S:
+		if (row == ROWS-1)
+			return loc(0, col);
+		else
+			return loc(row+1, col);
+	case W:
+		if (col == 0)
+			return loc(row, COLS-1);
+		else
+			return loc(row, col-1);
+	}
+}
 
 void do_setup(struct Game *game)
 {
@@ -65,6 +70,11 @@ void do_setup(struct Game *game)
 	}
 }
 
+void order(int row, int col, enum DIRECTION dir)
+{
+	fprintf(stdout, "o %d %d %c\n", row, col, direction(dir));
+}
+
 void do_preturn(struct Game *game)
 {
 	int i;
@@ -72,23 +82,6 @@ void do_preturn(struct Game *game)
 		game->foodmap[i] = 0;
 		game->antmap[i] = 0;
 		game->hillmap[i] = 0;
-	}
-}
-
-void order(int row, int col, enum DIRECTION dir)
-{
-	fprintf(stdout, "o %d %d %c\n", row, col, direction(dir));
-}
-
-void do_turn(struct Game *game)
-{
-	int r,c;
-	for (r=0; r<ROWS; r++) {
-		for (c=0; c<COLS; c++) {
-			if (game->antmap[loc(r,c)] == 1) {
-				order(r, c, N);
-			}
-		}
 	}
 }
 
