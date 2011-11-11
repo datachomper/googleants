@@ -115,9 +115,6 @@ void do_turn(struct Game *game)
 
 	diffuse_iter(map);
 
-	if (game->turn == 3)
-		print_map(map);
-
 	for (r=0; r<ROWS; r++) {
 		for (c=0; c<COLS; c++) {
 			if (game->antmap[loc(r,c)] == 1) {
