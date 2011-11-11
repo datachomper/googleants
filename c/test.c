@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define ROWS 200
-#define COLS 200
+#define ROWS 20
+#define COLS 20
 
 enum DIRECTION { n,e,s,w };
 
@@ -162,7 +162,7 @@ int main(void)
 		map[r] = malloc(COLS*sizeof(int));	
 
 	/* Benchmarking */
-#if 1
+#if 0
 	start = clock();
 	for(iter=0; iter < 100; iter++) {
 		for(r=0; r<ROWS; r++)
@@ -192,13 +192,13 @@ int main(void)
 	elapsed = ((double)(end-start))/CLOCKS_PER_SEC;
 	printf("%fs per diffusion2\n", elapsed/100);
 #endif
-#if 0
+#if 1
 
 	/* Visualize */
 	for(r=0; r<ROWS; r++)
 		for(c=0; c<COLS; c++)
 			map[r][c] = 255;
-	map[0][0] = 1;
+	map[10][10] = 255-7;
 	diffuse_iter(map);
 	print_map(map);
 
@@ -206,7 +206,14 @@ int main(void)
 	for(r=0; r<ROWS; r++)
 		for(c=0; c<COLS; c++)
 			map2[loc(r,c)] = 255;
-	map2[loc(0,0)] = 1;
+	map2[loc(10,10)] = 255-7;
+	diffuse_iter2(map2);
+	for(r=0; r<ROWS; r++)
+		for(c=0; c<COLS; c++)
+			if (map2[loc(r,c)] == 255)
+				map2[loc(r,c)] = 1;
+			else
+				map2[loc(r,c)] = 255;
 	diffuse_iter2(map2);
 	printf("\n");
 	print_map2(map2);

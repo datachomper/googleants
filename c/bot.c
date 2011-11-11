@@ -1,5 +1,17 @@
 #include "api.h"
 #include <stdio.h>
+#include <stdlib.h>
+
+void print_map(int *map)
+{
+	int r,c;
+	for(r=0; r<ROWS; r++) {
+		for(c=0; c<COLS; c++) {
+			fprintf(stderr, "%3d ", map[loc(r,c)]);
+		}
+		fprintf(stderr, "\n");
+	}
+}
 
 void write_img(int *map, const char *name)
 {
@@ -61,9 +73,21 @@ void diffuse_iter(int *map)
 void do_turn(struct Game *game)
 {
 	#define NO_MOVE -1
-	int *map = game->watermap;
+	int *map;
+	int *viewmap;
 	int i,r,c;
 	int dir, child, lowest, lowest_dir;
+
+	// Start from a base of watermap
+	map = malloc(ROWS*COLS*sizeof(int));
+
+	// Generate a shitty viewmap that needs to be fixed later
+	viewmap = malloc(ROWS*COLS*sizeof(int));
+	for (i=0; i<ROWS*COLS; i++) {
+		viewmap[i] = (game->antmap[i] == 1) ? 255-7 : 255;
+		map[i] = game->watermap[i];
+	}
+	diffuse_iter(viewmap);
 
 	for (i=0; i<ROWS*COLS; i++) {
 			// Elevate base map to 255 everywhere except for walls
@@ -83,13 +107,16 @@ void do_turn(struct Game *game)
 			// Make food desireable
 			if (game->foodmap[i])
 				map[i] = 1;
+
+			// Assign all unviewable locations as desireable
+			if ((map[i] == 255) && (viewmap[i] == 255))
+				map[i] = 5;
 	}
 
 	diffuse_iter(map);
-/*
-	if (game->turn == 50)
-		write_img(map, "turn50.pnm");
-*/
+
+	if (game->turn == 3)
+		print_map(map);
 
 	for (r=0; r<ROWS; r++) {
 		for (c=0; c<COLS; c++) {
@@ -105,6 +132,8 @@ void do_turn(struct Game *game)
 				}
 				if (lowest_dir != -1)
 					order(r, c, lowest_dir);
+					map[loc(r,c)] = 255;
+					map[neighbor(r ,c, lowest_dir)] = 0;
 			}
 		}
 	}
