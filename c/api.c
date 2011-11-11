@@ -4,12 +4,25 @@
 #include "simclist.h"
 
 enum STATE {SETUP, INGAME, END};
+enum DIRECTION { N,E,S,W };
 
 int ROWS, COLS;
 
 int loc(int x, int y)
 {
 	return (x*COLS+y);
+}
+
+char direction(short d)
+{
+	if (d == 0)
+		return 'N';
+	if (d == 1)
+		return 'E';
+	if (d == 2)
+		return 'S';
+	if (d == 3)
+		return 'W';
 }
 
 struct Game {
@@ -62,15 +75,18 @@ void do_preturn(struct Game *game)
 	}
 }
 
+void order(int row, int col, enum DIRECTION dir)
+{
+	fprintf(stdout, "o %d %d %c\n", row, col, direction(dir));
+}
+
 void do_turn(struct Game *game)
 {
 	int r,c;
 	for (r=0; r<ROWS; r++) {
 		for (c=0; c<COLS; c++) {
 			if (game->antmap[loc(r,c)] == 1) {
-				fprintf(stderr, "o %d %d N\n", r, c);
-				fprintf(stdout, "o %d %d N\n", r, c);
-				fflush(NULL);
+				order(r, c, N);
 			}
 		}
 	}
@@ -122,7 +138,6 @@ int main()
 		if (game->state == SETUP) {
 			if (!strcmp(arg[0], "loadtime")) {
 				game->loadtime = atoi(arg[1]);
-				fprintf(stderr, "Got loadtime %d\n", game->loadtime);
 			} else if (!strcmp(arg[0], "turntime")) {
 				game->turntime = atoi(arg[1]);
 			} else if (!strcmp(arg[0], "rows")) {
@@ -150,27 +165,23 @@ int main()
 				case 'w':
 					row = atoi(arg[1]);
 					col = atoi(arg[2]);
-					fprintf(stderr, "Got water at %d,%d\n",row,col);
 					game->watermap[loc(row,col)] = 1;
 					break;
 				case 'f':
 					row = atoi(arg[1]);
 					col = atoi(arg[2]);
-					fprintf(stderr, "Got food at %d,%d\n",row,col);
 					game->foodmap[loc(row,col)] = 1;
 					break;
 				case 'h':
 					row = atoi(arg[1]);
 					col = atoi(arg[2]);
 					owner = atoi(arg[3]);
-					fprintf(stderr, "Got hill at %d,%d,%d\n",row,col,owner);
 					game->hillmap[loc(row,col)] = owner+1;
 					break;
 				case 'a':
 					row = atoi(arg[1]);
 					col = atoi(arg[2]);
 					owner = atoi(arg[3]);
-					fprintf(stderr, "Got ant at %d,%d,%d\n",row,col,owner);
 					game->antmap[loc(row,col)] = owner+1;
 					break;
 				case 'd':
