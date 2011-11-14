@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define ROWS 20
-#define COLS 20
+#define ROWS 200
+#define COLS 200
 
 enum DIRECTION { n,e,s,w };
 
@@ -155,44 +155,35 @@ int main(void)
 	int r,c,d,iter;
 	struct point p;
 	struct point neigh;
-	clock_t start, end;
-	double elapsed;
+	struct timespec start, finish;
 
 	for(r=0; r<ROWS; r++)
 		map[r] = malloc(COLS*sizeof(int));	
 
 	/* Benchmarking */
-#if 0
-	start = clock();
-	for(iter=0; iter < 100; iter++) {
-		for(r=0; r<ROWS; r++)
-			for(c=0; c<COLS; c++)
-				map[r][c] = 255;
+	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
+	for(r=0; r<ROWS; r++)
+		for(c=0; c<COLS; c++)
+			map[r][c] = 255;
 
-		map[0][0] = 1;
-		diffuse_iter(map);
-	}
-	end = clock();
+	map[0][0] = 1;
+	diffuse_iter(map);
+	if (!clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &finish))
+		printf("%.2fms per diffusion\n",(float)(finish.tv_nsec-start.tv_nsec)/1000000);
 //	print_map(map);
-	elapsed = ((double)(end-start))/CLOCKS_PER_SEC;
-	printf("%fs per diffusion\n\n", elapsed/100);
 
 
-	start = clock();
-	for(iter=0; iter < 100; iter++) {
-		for(r=0; r<ROWS; r++)
-			for(c=0; c<COLS; c++)
-				map2[loc(r,c)] = 255;
+	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
+	for(r=0; r<ROWS; r++)
+		for(c=0; c<COLS; c++)
+			map2[loc(r,c)] = 255;
 
-		map2[loc(0,0)] = 1;
-		diffuse_iter2(map2);
-	}
-	end = clock();
+	map2[loc(0,0)] = 1;
+	diffuse_iter2(map2);
 //	print_map2(map2);
-	elapsed = ((double)(end-start))/CLOCKS_PER_SEC;
-	printf("%fs per diffusion2\n", elapsed/100);
-#endif
-#if 1
+	if (!clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &finish))
+		printf("%.2fms per diffusion2\n",(float)(finish.tv_nsec-start.tv_nsec)/1000000);
+#if 0
 
 	/* Visualize */
 	for(r=0; r<ROWS; r++)
