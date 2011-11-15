@@ -4,10 +4,38 @@
 /* Usage: ./pathfind < mapfile.map */
 
 int ROWS, COLS;
+enum DIRECTION { N,E,S,W };
 
 int loc(int x, int y)
 {
 	return (x*COLS+y);
+}
+
+int neighbor(int row, int col, enum DIRECTION dir)
+{
+	switch(dir) {
+	case N:
+		if (row == 0)
+			return loc(ROWS-1, col);
+		else
+			return loc(row-1, col);
+	case E:
+		if (col == COLS-1)
+			return loc(row, 0);
+		else
+			return loc(row, col+1);
+	case S:
+		if (row == ROWS-1)
+			return loc(0, col);
+		else
+			return loc(row+1, col);
+	case W:
+		if (col == 0)
+			return loc(row, COLS-1);
+		else
+			return loc(row, col-1);
+	}
+	return 0;
 }
 
 void print_map(char *map)
@@ -52,6 +80,11 @@ char * import_map() {
 		}
 	}
 	return map;
+}
+
+void astar(char *map, int startx, int starty, int endx, int endy)
+{
+
 }
 
 int main()
