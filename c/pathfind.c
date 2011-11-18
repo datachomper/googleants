@@ -23,6 +23,32 @@ int loc(int x, int y)
 	return (x*COLS+y);
 }
 
+void write_img(int *map, const char *name)
+{
+	FILE *fp;
+	int r,c,val;
+
+	fp = fopen(name, "w");
+	fprintf(fp, "P3\n%d %d\n255\n", COLS, ROWS);
+	for (r=0; r<ROWS; r++) {
+		for (c=0; c<COLS; c++) {
+			val = map[loc(r,c)];
+			if (val == '%')
+				fprintf(fp, "%03d %03d %03d ",0,0,0);
+			else if (val == '0')
+				fprintf(fp, "%03d %03d %03d ",0,0,255);
+			else if (val == '1')
+				fprintf(fp, "%03d %03d %03d ",255,0,0);
+			else if (val == '2')
+				fprintf(fp, "%03d %03d %03d ",100,100,100);
+			else
+				fprintf(fp, "%03d %03d %03d ",255,255,255);
+		}
+		fprintf(fp, "\n");
+	}
+	fclose(fp);
+}
+
 void neighbors(int *map, struct square *parent, struct list_head *adj)
 {
 	int row, col, offset;
@@ -198,7 +224,8 @@ int main()
 	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &a);
 	astar(map, &start, &finish);
 	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &b);
-	print_map(map);
+	write_img(map, "astar.ppm");
+	//print_map(map);
 	printf("run time: %.2fms\n", (float)(b.tv_nsec-a.tv_nsec)/1000000);
 
 	return 0;
