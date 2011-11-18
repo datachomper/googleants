@@ -83,7 +83,7 @@ void print_map(int *map)
 }
 
 int * import_map() {
-	int *map;
+	int *map = 0;
 	char buf[BUFSIZ];
 	char *index;
 	int offset = 0;
@@ -99,8 +99,9 @@ int * import_map() {
 		} else if (*index == 'p') {
 			// Ignore
 		} else if (*index == 'm') {
-			if (!map)
-				map = malloc(sizeof(ROWS*COLS*sizeof(int)));
+			if (!map) {
+				map = malloc(ROWS*COLS*sizeof(int));
+			}
 			index += 2;
 			while (*index != '\n') {
 				map[offset] = *index;
