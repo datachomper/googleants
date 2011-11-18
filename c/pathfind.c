@@ -62,7 +62,7 @@ void neighbors(int *map, struct square *parent, struct list_head *adj)
 			square->parent = parent;
 			list_add(&square->node, adj);
 			printf("row:%d col:%d offset:%d map:%c\n", row, col, loc(row,col), map[loc(row,col)]);
-			map[loc(row,col)] = '2';
+			map[loc(row,col)] = (int)'2';
 		} else {
 			printf("threw away x:%d y:%d\n", row, col);
 		}
@@ -152,10 +152,10 @@ void astar(int *map, struct square *start, struct square *target)
 		if ((lowest->x == target->x) && (lowest->y == target->y)) {
 			// Zip backwards through the tree and set the square
 			// to some value to indicate our chosen path
-//			do {
-//				map[loc(lowest->x,lowest->y)] = '0';
-//				lowest = lowest->parent;
-//			} while (lowest->parent != NULL);
+			do {
+				map[loc(lowest->x,lowest->y)] = '0';
+				lowest = lowest->parent;
+			} while (lowest->parent != NULL);
 			return;
 		}
 		map[loc(lowest->x,lowest->y)] = '1';
