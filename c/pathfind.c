@@ -12,10 +12,12 @@ static struct square *freelist;
 
 struct square {
 	struct list_head node;
+	struct list_head adj;
 	struct square *parent;
 	char x;
 	char y;
-	int f;
+	int h;
+	int g;
 };
 
 int loc(int x, int y)
@@ -89,10 +91,13 @@ void neighbors(int *map, struct square *parent, struct list_head *adj)
 			square = &freelist[offset];
 			square->x = row;
 			square->y = col;
+			square->g = parent->g + 1;
 			square->parent = parent;
-			list_add(&square->node, adj);
-			map[offset] = '2';
-		} else {
+			list_add(&square->adj, adj);
+		} else if (map[offset] != '%') {
+			struct square *square;
+			square = &freelist[offset];
+			list_add(&square->adj, adj);
 		}
 	}
 	return;
@@ -147,14 +152,14 @@ char min(char a, char b) {
 	return (a < b) ? a : b;
 }
 
-/* Calculates the manhattan distance from start to goal
- * Stores it in start->f */
-void fu(struct square *start, struct square *goal) {
+/* Find F value for a given square and target */
+void heuristic(struct square *current, struct square *goal) {
 	char diff;
-	diff = abs(start->x - goal->x);
-	start->f = min(diff, ROWS-diff);
-	diff = abs(start->y - goal->y);
-	start->f += min(diff, COLS-diff);
+	// Calculate H, manhattan distance to the goal
+	diff = abs(current->x - goal->x);
+	current->h = min(diff, ROWS-diff);
+	diff = abs(current->y - goal->y);
+	current->h += min(diff, COLS-diff);
 }
 
 void astar_init(int rows, int cols)
@@ -171,13 +176,14 @@ void astar(int *map, struct square *start, struct square *target)
 	struct square *square, *lowest, *f, *n;
 
 	start->parent = NULL;
-	fu(start, target);
+	heuristic(start, target);
+	start->g = 0;
 	list_add(&start->node, &open);
 	while (!list_empty(&open)) {
 		lowest = 0;
 		list_for_each_entry(square, &open, node) {
 			// Find lowest F value
-			if ((!lowest) || (lowest->f > square->f))
+			if ((!lowest) || (lowest->h+lowest->g > square->h+square->g))
 				lowest = square;
 		}
 
@@ -196,8 +202,21 @@ void astar(int *map, struct square *start, struct square *target)
 		neighbors(map, lowest, &neigh);
 		if (!list_empty(&neigh)) {
 			list_for_each_entry_safe(f, n, &neigh, node) {
-				fu(f, target);
-				list_move(&f->node, &open);
+				// Neighbor already on open list or not
+				if (map[loc(f->x,f->y)] != '.') {
+					/* If current path to neighbor is
+					 * shorter, reset neighbor parent
+					 * and G score. */
+					if (lowest->g+1 < f->g) {
+						f->parent = lowest;
+						f->g = lowest->g+1;
+					}
+					list_del_init(&f->adj);
+				} else {
+					heuristic(f, target);
+					list_move(&f->adj, &open);
+					map[loc(f->x,f->y)] = '2';
+				}
 			}
 		}
 		// Move current square from open to freelist
@@ -217,10 +236,10 @@ int main()
 		return -1;
 
 	astar_init(ROWS, COLS);
-	start.x = 4;
-	start.y = 4;
-	finish.x = 34;
-	finish.y = 0;
+	start.x = 10;
+	start.y = 20;
+	finish.x = 17;
+	finish.y = 54;
 	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &a);
 	astar(map, &start, &finish);
 	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &b);
