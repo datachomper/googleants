@@ -8,6 +8,7 @@
 
 int ROWS, COLS;
 enum DIRECTION { N,E,S,W };
+static struct square *freelist;
 
 struct square {
 	struct list_head node;
@@ -24,7 +25,7 @@ int loc(int x, int y)
 
 void neighbors(int *map, struct square *parent, struct list_head *adj)
 {
-	char row, col;
+	int row, col, offset;
 	enum DIRECTION d;
 
 	for (d=0; d<4; d++) {
@@ -56,13 +57,15 @@ void neighbors(int *map, struct square *parent, struct list_head *adj)
 				col = col-1;
 			break;
 		}
-		if (map[loc(row,col)] == '.') {
-			struct square *square = malloc(sizeof(struct square));
+		offset = loc(row,col);
+		if (map[offset] == '.') {
+			struct square *square;
+			square = &freelist[offset];
 			square->x = row;
 			square->y = col;
 			square->parent = parent;
 			list_add(&square->node, adj);
-			map[loc(row,col)] = (int)'2';
+			map[offset] = '2';
 		} else {
 		}
 	}
@@ -128,10 +131,16 @@ void fu(struct square *start, struct square *goal) {
 	start->f += min(diff, COLS-diff);
 }
 
+void astar_init(int rows, int cols)
+{
+	ROWS = rows;
+	COLS = cols;
+	freelist = malloc(ROWS*COLS*sizeof(struct square));
+}
+
 void astar(int *map, struct square *start, struct square *target)
 {
 	LIST_HEAD(open);
-	LIST_HEAD(closed);
 	LIST_HEAD(neigh);
 	struct square *square, *lowest, *f, *n;
 
@@ -165,8 +174,8 @@ void astar(int *map, struct square *start, struct square *target)
 				list_move(&f->node, &open);
 			}
 		}
-		// Move current square from open to closed
-		list_move(&lowest->node, &closed);
+		// Move current square from open to freelist
+		list_del_init(&lowest->node);
 	}
 	printf("oops, open list is empty!\n");
 }
@@ -181,6 +190,7 @@ int main()
 	if (!map)
 		return -1;
 
+	astar_init(ROWS, COLS);
 	start.x = 4;
 	start.y = 4;
 	finish.x = 34;
