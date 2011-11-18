@@ -21,16 +21,14 @@ int loc(int x, int y)
 	return (x*COLS+y);
 }
 
-struct list_head *neighbors(char *map, struct square *parent)
+void neighbors(int *map, struct square *parent, struct list_head *adj)
 {
-	struct list_head *adj;
 	char row, col;
 	enum DIRECTION d;
-	INIT_LIST_HEAD(adj);
 
 	for (d=0; d<4; d++) {
 		row = parent->x;
-		col = parent->x;
+		col = parent->y;
 		switch(d) {
 		case N:
 			if (row == 0)
@@ -57,18 +55,22 @@ struct list_head *neighbors(char *map, struct square *parent)
 				col = col-1;
 			break;
 		}
-		if (map[loc(row,col)] != '%') {
+		if (map[loc(row,col)] == '.') {
 			struct square *square = malloc(sizeof(struct square));
 			square->x = row;
 			square->y = col;
 			square->parent = parent;
 			list_add(&square->node, adj);
+			printf("row:%d col:%d offset:%d map:%c\n", row, col, loc(row,col), map[loc(row,col)]);
+			map[loc(row,col)] = '2';
+		} else {
+			printf("threw away x:%d y:%d\n", row, col);
 		}
 	}
-	return adj;
+	return;
 }
 
-void print_map(char *map)
+void print_map(int *map)
 {
 	int r,c;
 	for(r=0; r<ROWS; r++) {
@@ -80,8 +82,8 @@ void print_map(char *map)
 	}
 }
 
-char * import_map() {
-	char *map;
+int * import_map() {
+	int *map;
 	char buf[BUFSIZ];
 	char *index;
 	int offset = 0;
@@ -98,7 +100,7 @@ char * import_map() {
 			// Ignore
 		} else if (*index == 'm') {
 			if (!map)
-				map = malloc(sizeof(ROWS*COLS*sizeof(char)));
+				map = malloc(sizeof(ROWS*COLS*sizeof(int)));
 			index += 2;
 			while (*index != '\n') {
 				map[offset] = *index;
@@ -126,49 +128,64 @@ void fu(struct square *start, struct square *goal) {
 	start->f += min(diff, COLS-diff);
 }
 
-void astar(char *map, struct square *start, struct square *target)
+void astar(int *map, struct square *start, struct square *target)
 {
 	LIST_HEAD(open);
 	LIST_HEAD(closed);
-	struct square *square, *lowest, *f;
-	struct list_head *neigh;
+	LIST_HEAD(neigh);
+	struct square *square, *lowest, *f, *t;
 
+	printf("start x%d y%d\n", start->x, start->y);
 	start->parent = NULL;
 	fu(start, target);
 	list_add(&start->node, &open);
 	while (!list_empty(&open)) {
+		lowest = 0;
 		list_for_each_entry(square, &open, node) {
 			// Find lowest F value
+			printf("iter x%d y%d\n", square->x, square->y);
 			if ((!lowest) || (lowest->f > square->f))
 				lowest = square;
 		}
+		printf("Evaluating x%d y%d\n", lowest->x, lowest->y);
 
 		if ((lowest->x == target->x) && (lowest->y == target->y)) {
 			// Zip backwards through the tree and set the square
 			// to some value to indicate our chosen path
-			do {
-				map[loc(lowest->x, lowest->y)] = 0;
-				lowest = lowest->parent;
-			} while (lowest->parent != NULL);
+//			do {
+//				map[loc(lowest->x,lowest->y)] = '0';
+//				lowest = lowest->parent;
+//			} while (lowest->parent != NULL);
 			return;
 		}
+		map[loc(lowest->x,lowest->y)] = '1';
 
 		// Add all valid neighbor moves onto the open list
-		neigh = neighbors(map, lowest);
-		if (!list_empty(neigh)) {
-			list_for_each_entry(f, neigh, node) {
+		neighbors(map, lowest, &neigh);
+		if (!list_empty(&neigh)) {
+			list_for_each_entry(f, &neigh, node) {
 				fu(f, target);
+//				list_add_tail(&f->node, &open);
+				printf("adj x%d y%d f%d\n", f->x, f->y, f->f);
 			}
-			list_splice(neigh, &open);
+			list_splice_init(&f->node, &open);
+			list_for_each_entry(f, &neigh, node) {
+				list_del_init(&f->node);
+				free(f);
+			}
 		}
 		// Move current square from open to closed
 		list_move(&lowest->node, &closed);
+		list_for_each_entry(t, &open, node) {
+			printf("new open x%d y%d f%d\n", t->x, t->y, t->f);
+		}
 	}
+	printf("oops, open list is empty!\n");
 }
 
 int main()
 {
-	char *map;
+	int *map;
 	struct square start, finish;
 
 	map = import_map();
@@ -176,9 +193,9 @@ int main()
 		return -1;
 
 	start.x = 4;
-	start.y = 0;
-	finish.x = 4;
-	finish.y = 4;
+	start.y = 4;
+	finish.x = 34;
+	finish.y = 0;
 	astar(map, &start, &finish);
 	print_map(map);
 
