@@ -133,7 +133,7 @@ void astar(int *map, struct square *start, struct square *target)
 	LIST_HEAD(open);
 	LIST_HEAD(closed);
 	LIST_HEAD(neigh);
-	struct square *square, *lowest, *f;
+	struct square *square, *lowest, *f, *n;
 
 	start->parent = NULL;
 	fu(start, target);
@@ -160,14 +160,9 @@ void astar(int *map, struct square *start, struct square *target)
 		// Add all valid neighbor moves onto the open list
 		neighbors(map, lowest, &neigh);
 		if (!list_empty(&neigh)) {
-			list_for_each_entry(f, &neigh, node) {
+			list_for_each_entry_safe(f, n, &neigh, node) {
 				fu(f, target);
-//				list_add_tail(&f->node, &open);
-			}
-			list_splice_init(&f->node, &open);
-			list_for_each_entry(f, &neigh, node) {
-				list_del_init(&f->node);
-				free(f);
+				list_move(&f->node, &open);
 			}
 		}
 		// Move current square from open to closed
