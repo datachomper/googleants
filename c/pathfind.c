@@ -62,10 +62,8 @@ void neighbors(int *map, struct square *parent, struct list_head *adj)
 			square->y = col;
 			square->parent = parent;
 			list_add(&square->node, adj);
-			printf("row:%d col:%d offset:%d map:%c\n", row, col, loc(row,col), map[loc(row,col)]);
 			map[loc(row,col)] = (int)'2';
 		} else {
-			printf("threw away x:%d y:%d\n", row, col);
 		}
 	}
 	return;
@@ -135,9 +133,8 @@ void astar(int *map, struct square *start, struct square *target)
 	LIST_HEAD(open);
 	LIST_HEAD(closed);
 	LIST_HEAD(neigh);
-	struct square *square, *lowest, *f, *t;
+	struct square *square, *lowest, *f;
 
-	printf("start x%d y%d\n", start->x, start->y);
 	start->parent = NULL;
 	fu(start, target);
 	list_add(&start->node, &open);
@@ -145,11 +142,9 @@ void astar(int *map, struct square *start, struct square *target)
 		lowest = 0;
 		list_for_each_entry(square, &open, node) {
 			// Find lowest F value
-			printf("iter x%d y%d\n", square->x, square->y);
 			if ((!lowest) || (lowest->f > square->f))
 				lowest = square;
 		}
-		printf("Evaluating x%d y%d\n", lowest->x, lowest->y);
 
 		if ((lowest->x == target->x) && (lowest->y == target->y)) {
 			// Zip backwards through the tree and set the square
@@ -168,7 +163,6 @@ void astar(int *map, struct square *start, struct square *target)
 			list_for_each_entry(f, &neigh, node) {
 				fu(f, target);
 //				list_add_tail(&f->node, &open);
-				printf("adj x%d y%d f%d\n", f->x, f->y, f->f);
 			}
 			list_splice_init(&f->node, &open);
 			list_for_each_entry(f, &neigh, node) {
@@ -178,9 +172,6 @@ void astar(int *map, struct square *start, struct square *target)
 		}
 		// Move current square from open to closed
 		list_move(&lowest->node, &closed);
-		list_for_each_entry(t, &open, node) {
-			printf("new open x%d y%d f%d\n", t->x, t->y, t->f);
-		}
 	}
 	printf("oops, open list is empty!\n");
 }
