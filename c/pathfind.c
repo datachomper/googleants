@@ -23,13 +23,14 @@ int loc(int x, int y)
 
 struct list_head *neighbors(char *map, struct square *parent)
 {
-	LIST_HEAD(adj);
+	struct list_head *adj;
 	char row, col;
 	enum DIRECTION d;
+	INIT_LIST_HEAD(adj);
 
 	for (d=0; d<4; d++) {
-		row = parent->row;
-		col = parent->col;
+		row = parent->x;
+		col = parent->x;
 		switch(d) {
 		case N:
 			if (row == 0)
@@ -57,11 +58,11 @@ struct list_head *neighbors(char *map, struct square *parent)
 			break;
 		}
 		if (map[loc(row,col)] != '%') {
-			struct *square = malloc(sizeof(struct square));
+			struct square *square = malloc(sizeof(struct square));
 			square->x = row;
 			square->y = col;
-			&square->parent = parent;
-			list_add(&square->node, &adj);
+			square->parent = parent;
+			list_add(&square->node, adj);
 		}
 	}
 	return adj;
@@ -115,7 +116,8 @@ char min(char a, char b) {
 	return (a < b) ? a : b;
 }
 
-/* Assigns the manhattan distance from start to goal to start->f */
+/* Calculates the manhattan distance from start to goal
+ * Stores it in start->f */
 void fu(struct square *start, struct square *goal) {
 	char diff;
 	diff = abs(start->x - goal->x);
@@ -129,7 +131,7 @@ void astar(char *map, struct square *start, struct square *target)
 	LIST_HEAD(open);
 	LIST_HEAD(closed);
 	struct square *square, *lowest, *f;
-	int d;
+	struct list_head *neigh;
 
 	start->parent = NULL;
 	fu(start, target);
@@ -144,15 +146,21 @@ void astar(char *map, struct square *start, struct square *target)
 		if ((lowest->x == target->x) && (lowest->y == target->y)) {
 			// Zip backwards through the tree and set the square
 			// to some value to indicate our chosen path
+			do {
+				map[loc(lowest->x, lowest->y)] = 0;
+				lowest = lowest->parent;
+			} while (lowest->parent != NULL);
 			return;
 		}
 
 		// Add all valid neighbor moves onto the open list
-		neighbors = neighbors(map, lowest);
-		list_for_each_entry(f, &neighbors, node) {
-			fu(f, target);
+		neigh = neighbors(map, lowest);
+		if (!list_empty(neigh)) {
+			list_for_each_entry(f, neigh, node) {
+				fu(f, target);
+			}
+			list_splice(neigh, &open);
 		}
-		list_splice(&neighbors, &open);
 		// Move current square from open to closed
 		list_move(&lowest->node, &closed);
 	}
@@ -161,12 +169,18 @@ void astar(char *map, struct square *start, struct square *target)
 int main()
 {
 	char *map;
+	struct square start, finish;
 
-//	map = import_map();
-//	if (!map)
-//		return -1;
-//	print_map(map);
-	astar(map, 12, 13, 44, 55);
+	map = import_map();
+	if (!map)
+		return -1;
+
+	start.x = 4;
+	start.y = 0;
+	finish.x = 4;
+	finish.y = 4;
+	astar(map, &start, &finish);
+	print_map(map);
 
 	return 0;
 }
