@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include "types.h"
 #include "list.h"
 
@@ -188,6 +189,7 @@ int main()
 {
 	int *map;
 	struct square start, finish;
+	struct timespec a,b;
 
 	map = import_map();
 	if (!map)
@@ -197,8 +199,11 @@ int main()
 	start.y = 4;
 	finish.x = 34;
 	finish.y = 0;
+	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &a);
 	astar(map, &start, &finish);
+	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &b);
 	print_map(map);
+	printf("run time: %.2fms\n", (float)(b.tv_nsec-a.tv_nsec)/1000000);
 
 	return 0;
 }
