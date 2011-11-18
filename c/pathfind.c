@@ -111,27 +111,50 @@ char * import_map() {
 	return map;
 }
 
-void astar(char *map, int startx, int starty, int endx, int endy)
+char min(char a, char b) {
+	return (a < b) ? a : b;
+}
+
+/* Assigns the manhattan distance from start to goal to start->f */
+void fu(struct square *start, struct square *goal) {
+	char diff;
+	diff = abs(start->x - goal->x);
+	start->f = min(diff, ROWS-diff);
+	diff = abs(start->y - goal->y);
+	start->f += min(diff, COLS-diff);
+}
+
+void astar(char *map, struct square *start, struct square *target)
 {
 	LIST_HEAD(open);
 	LIST_HEAD(closed);
-	struct square *start = malloc(sizeof(struct square));
-	struct square *square;
+	struct square *square, *lowest, *f;
 	int d;
 
-	start->x = startx;
-	start->y = starty;
 	start->parent = NULL;
+	fu(start, target);
 	list_add(&start->node, &open);
 	while (!list_empty(&open)) {
 		list_for_each_entry(square, &open, node) {
 			// Find lowest F value
+			if ((!lowest) || (lowest->f > square->f))
+				lowest = square;
 		}
+
+		if ((lowest->x == target->x) && (lowest->y == target->y)) {
+			// Zip backwards through the tree and set the square
+			// to some value to indicate our chosen path
+			return;
+		}
+
 		// Add all valid neighbor moves onto the open list
-		neighbors = neighbors(map, square);
+		neighbors = neighbors(map, lowest);
+		list_for_each_entry(f, &neighbors, node) {
+			fu(f, target);
+		}
 		list_splice(&neighbors, &open);
 		// Move current square from open to closed
-		list_move(&square->node, &closed);
+		list_move(&lowest->node, &closed);
 	}
 }
 
