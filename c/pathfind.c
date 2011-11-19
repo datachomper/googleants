@@ -12,6 +12,7 @@ enum LISTS {FREE, CLOSED, OPEN};
 static struct square *slist;
 
 struct square {
+	struct list_head node;
 	struct square *parent;
 	int offset;
 	int g;
@@ -165,36 +166,30 @@ void astar_init(int rows, int cols)
 	}
 }
 
-struct square * get_best_f()
+struct square * get_best_f(struct list_head *openlist)
 {
-	int i, lowest;
-	lowest = -1;
-	for (i=0; i < ROWS*COLS; i++) {
-		if (slist[i].list == OPEN) {
-			if (lowest == -1)
-				lowest = i;
-			if ((slist[i].g+slist[i].h) < slist[lowest].g+slist[lowest].h) {
-				lowest = i;
-			}
-		}
+	struct square *s;
+	struct square *lowest = NULL;
+	list_for_each_entry(s, openlist, node) {
+		if ((!lowest) || ((s->g+s->h) < (lowest->g+lowest->h)))
+			lowest = s;
 	}
-	if (lowest == -1)
-		return NULL;
-	else
-		return &slist[lowest];
+	return lowest;
 }
 
 void astar(int *map, struct square *start, struct square *target)
 {
 	struct square *s, *n;
+	LIST_HEAD(openlist);
 	int d;
 
 	start->parent = NULL;
 	start->h = manhattan(start, target);
 	start->g = 0;
 	start->list = OPEN;
+	list_add(&start->node, &openlist);
 
-	while ((s = get_best_f()) != NULL) {
+	while ((s = get_best_f(&openlist)) != NULL) {
 		if (s == target) {
 			// Zip backwards through the tree and set the square
 			// to some value to indicate our chosen path
@@ -205,6 +200,7 @@ void astar(int *map, struct square *start, struct square *target)
 			return;
 		}
 		s->list = CLOSED;
+		list_del_init(&s->node);
 
 		// Add all valid neighbor moves onto the open list
 		for (d=0; d<4; d++) {
@@ -217,6 +213,7 @@ void astar(int *map, struct square *start, struct square *target)
 					n->g = s->g + 1;
 				}
 			} else if (n->list == FREE) {
+				list_add(&n->node, &openlist);
 				n->list = OPEN;
 				n->h = manhattan(n, target);
 				n->g = s->g + 1;
