@@ -195,7 +195,6 @@ void astar(int *map, struct square *start, struct square *target)
 	start->list = OPEN;
 
 	while ((s = get_best_f()) != NULL) {
-		printf("Evaluating offset: %d\n", s->offset);
 		if (s == target) {
 			// Zip backwards through the tree and set the square
 			// to some value to indicate our chosen path
@@ -212,7 +211,6 @@ void astar(int *map, struct square *start, struct square *target)
 			n = neighbor(map, s, d);	
 			if (map[n->offset] == '%' || n->list == CLOSED)
 				continue;
-			printf("Evaluating neighbor: %d\n", n->offset);
 			if (n->list == OPEN) {
 				if (s->g+1 < n->g) {
 					n->parent = s;
