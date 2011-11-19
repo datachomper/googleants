@@ -170,8 +170,13 @@ struct square * get_best_f(struct list_head *openlist)
 {
 	struct square *s;
 	struct square *lowest = NULL;
+	int lowest_f;
+
+	lowest = list_first_entry(openlist, struct square, node);
+	lowest_f = lowest->g+lowest->h;
+
 	list_for_each_entry(s, openlist, node) {
-		if ((!lowest) || ((s->g+s->h) < (lowest->g+lowest->h)))
+		if ((s->g + s->h) < lowest_f)
 			lowest = s;
 	}
 	return lowest;
@@ -236,7 +241,7 @@ int main()
 
 	astar_init(ROWS, COLS);
 	start = &slist[loc(4,4)];
-	finish = &slist[loc(34,50)];
+	finish = &slist[loc(39,50)];
 
 	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &a);
 	astar(map, start, finish);
