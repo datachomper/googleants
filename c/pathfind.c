@@ -7,15 +7,16 @@
 /* Usage: ./pathfind < mapfile.map */
 
 int ROWS, COLS;
-enum DIRECTION { N,E,S,W };
-static struct square *freelist;
+enum DIRECTION {N,E,S,W};
+enum LISTS {FREE, CLOSED, OPEN};
+static struct square *slist;
 
 struct square {
-	struct list_head node;
 	struct square *parent;
-	char x;
-	char y;
-	int f;
+	int offset;
+	int g;
+	int h;
+	enum LISTS list;
 };
 
 int loc(int x, int y)
@@ -49,53 +50,40 @@ void write_img(int *map, const char *name)
 	fclose(fp);
 }
 
-void neighbors(int *map, struct square *parent, struct list_head *adj)
+struct square * neighbor(int *map, struct square *s, enum DIRECTION d)
 {
-	int row, col, offset;
-	enum DIRECTION d;
+	int row, col;
 
-	for (d=0; d<4; d++) {
-		row = parent->x;
-		col = parent->y;
-		switch(d) {
-		case N:
-			if (row == 0)
-				row = ROWS-1;
-			else
-				row = row-1;
-			break;
-		case E:
-			if (col == COLS-1)
-				col = 0;
-			else
-				col = col+1;
-			break;
-		case S:
-			if (row == ROWS-1)
-				row = 0;
-			else
-				row = row+1;
-			break;
-		case W:
-			if (col == 0)
-				col = COLS-1;
-			else
-				col = col-1;
-			break;
-		}
-		offset = loc(row,col);
-		if (map[offset] == '.') {
-			struct square *square;
-			square = &freelist[offset];
-			square->x = row;
-			square->y = col;
-			square->parent = parent;
-			list_add(&square->node, adj);
-			map[offset] = '2';
-		} else {
-		}
+	row = s->offset / COLS;
+	col = s->offset % COLS;
+
+	switch(d) {
+	case N:
+		if (row == 0)
+			row = ROWS-1;
+		else
+			row = row-1;
+		break;
+	case E:
+		if (col == COLS-1)
+			col = 0;
+		else
+			col = col+1;
+		break;
+	case S:
+		if (row == ROWS-1)
+			row = 0;
+		else
+			row = row+1;
+		break;
+	case W:
+		if (col == 0)
+			col = COLS-1;
+		else
+			col = col-1;
+		break;
 	}
-	return;
+	return &slist[loc(row,col)];
 }
 
 void print_map(int *map)
@@ -147,61 +135,96 @@ char min(char a, char b) {
 	return (a < b) ? a : b;
 }
 
-/* Calculates the manhattan distance from start to goal
- * Stores it in start->f */
-void fu(struct square *start, struct square *goal) {
-	char diff;
-	diff = abs(start->x - goal->x);
-	start->f = min(diff, ROWS-diff);
-	diff = abs(start->y - goal->y);
-	start->f += min(diff, COLS-diff);
+// Calculates the manhattan distance from start to goal
+int manhattan(struct square *start, struct square *goal) {
+	int diff, dist;
+	int x1,y1,x2,y2;
+
+	x1 = start->offset / COLS;
+	y1 = start->offset % COLS;
+	x2 = goal->offset / COLS;
+	y2 = goal->offset % COLS;
+
+	diff = abs(x1-x2);
+	dist = min(diff, ROWS-diff);
+	diff = abs(y1-y2);
+	dist += min(diff, COLS-diff);
+	return dist;
 }
 
 void astar_init(int rows, int cols)
 {
+	int offset;
+
 	ROWS = rows;
 	COLS = cols;
-	freelist = malloc(ROWS*COLS*sizeof(struct square));
+	slist = malloc(ROWS*COLS*sizeof(struct square));
+	for (offset=0; offset<ROWS*COLS; offset++) {
+		slist[offset].offset = offset;
+		slist[offset].list = FREE;
+	}
+}
+
+struct square * get_best_f()
+{
+	int i, lowest;
+	lowest = -1;
+	for (i=0; i < ROWS*COLS; i++) {
+		if (slist[i].list == OPEN) {
+			if (lowest == -1)
+				lowest = i;
+			if ((slist[i].g+slist[i].h) < slist[lowest].g+slist[lowest].h) {
+				lowest = i;
+			}
+		}
+	}
+	if (lowest == -1)
+		return NULL;
+	else
+		return &slist[lowest];
 }
 
 void astar(int *map, struct square *start, struct square *target)
 {
-	LIST_HEAD(open);
-	LIST_HEAD(neigh);
-	struct square *square, *lowest, *f, *n;
+	struct square *s, *n;
+	int d;
 
 	start->parent = NULL;
-	fu(start, target);
-	list_add(&start->node, &open);
-	while (!list_empty(&open)) {
-		lowest = 0;
-		list_for_each_entry(square, &open, node) {
-			// Find lowest F value
-			if ((!lowest) || (lowest->f > square->f))
-				lowest = square;
-		}
+	start->h = manhattan(start, target);
+	start->g = 0;
+	start->list = OPEN;
 
-		if ((lowest->x == target->x) && (lowest->y == target->y)) {
+	while ((s = get_best_f()) != NULL) {
+		printf("Evaluating offset: %d\n", s->offset);
+		if (s == target) {
 			// Zip backwards through the tree and set the square
 			// to some value to indicate our chosen path
 			do {
-				map[loc(lowest->x,lowest->y)] = '0';
-				lowest = lowest->parent;
-			} while (lowest->parent != NULL);
+				map[s->offset] = '0';
+				s = s->parent;
+			} while (s->parent != NULL);
 			return;
 		}
-		map[loc(lowest->x,lowest->y)] = '1';
+		s->list = CLOSED;
 
 		// Add all valid neighbor moves onto the open list
-		neighbors(map, lowest, &neigh);
-		if (!list_empty(&neigh)) {
-			list_for_each_entry_safe(f, n, &neigh, node) {
-				fu(f, target);
-				list_move(&f->node, &open);
+		for (d=0; d<4; d++) {
+			n = neighbor(map, s, d);	
+			if (map[n->offset] == '%' || n->list == CLOSED)
+				continue;
+			printf("Evaluating neighbor: %d\n", n->offset);
+			if (n->list == OPEN) {
+				if (s->g+1 < n->g) {
+					n->parent = s;
+					n->g = s->g + 1;
+				}
+			} else if (n->list == FREE) {
+				n->list = OPEN;
+				n->h = manhattan(n, target);
+				n->g = s->g + 1;
+				n->parent = s;
 			}
 		}
-		// Move current square from open to freelist
-		list_del_init(&lowest->node);
 	}
 	printf("oops, open list is empty!\n");
 }
@@ -209,7 +232,7 @@ void astar(int *map, struct square *start, struct square *target)
 int main()
 {
 	int *map;
-	struct square start, finish;
+	struct square *start, *finish;
 	struct timespec a,b;
 
 	map = import_map();
@@ -217,13 +240,13 @@ int main()
 		return -1;
 
 	astar_init(ROWS, COLS);
-	start.x = 4;
-	start.y = 4;
-	finish.x = 34;
-	finish.y = 0;
+	start = &slist[loc(4,4)];
+	finish = &slist[loc(34,50)];
+
 	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &a);
-	astar(map, &start, &finish);
+	astar(map, start, finish);
 	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &b);
+
 	write_img(map, "astar.ppm");
 	//print_map(map);
 	printf("run time: %.2fms\n", (float)(b.tv_nsec-a.tv_nsec)/1000000);
