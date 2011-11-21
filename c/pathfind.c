@@ -25,7 +25,7 @@ int loc(int x, int y)
 	return (x*COLS+y);
 }
 
-void write_img(int *map, const char *name)
+void write_img(char *map, const char *name)
 {
 	FILE *fp;
 	int r,c,val;
@@ -51,7 +51,7 @@ void write_img(int *map, const char *name)
 	fclose(fp);
 }
 
-struct square * neighbor(int *map, struct square *s, enum DIRECTION d)
+struct square * neighbor(char *map, struct square *s, enum DIRECTION d)
 {
 	int row, col;
 
@@ -87,7 +87,7 @@ struct square * neighbor(int *map, struct square *s, enum DIRECTION d)
 	return &slist[loc(row,col)];
 }
 
-void print_map(int *map)
+void print_map(char *map)
 {
 	int r,c;
 	for(r=0; r<ROWS; r++) {
@@ -99,8 +99,8 @@ void print_map(int *map)
 	}
 }
 
-int * import_map() {
-	int *map = 0;
+char * import_map() {
+	char *map = 0;
 	char buf[BUFSIZ];
 	char *index;
 	int offset = 0;
@@ -117,7 +117,7 @@ int * import_map() {
 			// Ignore
 		} else if (*index == 'm') {
 			if (!map) {
-				map = malloc(ROWS*COLS*sizeof(int));
+				map = malloc(ROWS*COLS*sizeof(char));
 			}
 			index += 2;
 			while (*index != '\n') {
@@ -182,7 +182,7 @@ struct square * get_best_f(struct list_head *openlist)
 	return lowest;
 }
 
-void astar(int *map, struct square *start, struct square *target)
+struct square * astar(char *map, struct square *start, struct square *target)
 {
 	struct square *s, *n;
 	LIST_HEAD(openlist);
@@ -201,8 +201,8 @@ void astar(int *map, struct square *start, struct square *target)
 			do {
 				map[s->offset] = '0';
 				s = s->parent;
-			} while (s->parent != NULL);
-			return;
+			} while (s->parent->parent != NULL);
+			return s;
 		}
 		s->list = CLOSED;
 		list_del_init(&s->node);
@@ -227,12 +227,14 @@ void astar(int *map, struct square *start, struct square *target)
 		}
 	}
 	printf("oops, open list is empty!\n");
+	return NULL;
 }
 
 int main()
 {
-	int *map;
+	char *map;
 	struct square *start, *finish;
+	struct square *next = NULL;
 	struct timespec a,b;
 
 	map = import_map();
@@ -244,11 +246,14 @@ int main()
 	finish = &slist[loc(39,50)];
 
 	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &a);
-	astar(map, start, finish);
+	next = astar(map, start, finish);
 	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &b);
 
 	write_img(map, "astar.ppm");
 	//print_map(map);
+	if (next)
+		printf("Moving to (%d,%d)\n", next->offset/COLS, next->offset%COLS);
+
 	printf("run time: %.2fms\n", (float)(b.tv_nsec-a.tv_nsec)/1000000);
 
 	return 0;
