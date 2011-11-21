@@ -1,9 +1,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
+#include "types.h"
+#include "list.h"
 #include "api.h"
 
 extern void do_turn(struct Game *game);
+
+static struct square *slist;
 
 char direction(short d)
 {
@@ -20,6 +25,140 @@ char direction(short d)
 int loc(int x, int y)
 {
 	return (x*COLS+y);
+}
+
+struct square * astar_neighbor(char *map, struct square *s, enum DIRECTION d)
+{
+	int row, col;
+
+	row = s->offset / COLS;
+	col = s->offset % COLS;
+
+	switch(d) {
+	case N:
+		if (row == 0)
+			row = ROWS-1;
+		else
+			row = row-1;
+		break;
+	case E:
+		if (col == COLS-1)
+			col = 0;
+		else
+			col = col+1;
+		break;
+	case S:
+		if (row == ROWS-1)
+			row = 0;
+		else
+			row = row+1;
+		break;
+	case W:
+		if (col == 0)
+			col = COLS-1;
+		else
+			col = col-1;
+		break;
+	}
+	return &slist[loc(row,col)];
+}
+
+char min(char a, char b) {
+	return (a < b) ? a : b;
+}
+
+// Calculates the manhattan distance from start to goal
+int manhattan(struct square *start, struct square *goal) {
+	int diff, dist;
+	int x1,y1,x2,y2;
+
+	x1 = start->offset / COLS;
+	y1 = start->offset % COLS;
+	x2 = goal->offset / COLS;
+	y2 = goal->offset % COLS;
+
+	diff = abs(x1-x2);
+	dist = min(diff, ROWS-diff);
+	diff = abs(y1-y2);
+	dist += min(diff, COLS-diff);
+	return dist;
+}
+
+void astar_init(int rows, int cols)
+{
+	int offset;
+
+	ROWS = rows;
+	COLS = cols;
+	slist = malloc(ROWS*COLS*sizeof(struct square));
+	for (offset=0; offset<ROWS*COLS; offset++) {
+		slist[offset].offset = offset;
+		slist[offset].list = FREE;
+	}
+}
+
+struct square * get_best_f(struct list_head *openlist)
+{
+	struct square *s;
+	struct square *lowest = NULL;
+	int lowest_f;
+
+	lowest = list_first_entry(openlist, struct square, astar);
+	lowest_f = lowest->g+lowest->h;
+
+	list_for_each_entry(s, openlist, astar) {
+		if ((s->g + s->h) < lowest_f)
+			lowest = s;
+	}
+	return lowest;
+}
+
+struct square * astar(char *map, struct square *start, struct square *target)
+{
+	struct square *s, *n;
+	LIST_HEAD(openlist);
+	int d;
+
+	start->parent = NULL;
+	start->h = manhattan(start, target);
+	start->g = 0;
+	start->list = OPEN;
+	list_add(&start->astar, &openlist);
+
+	while ((s = get_best_f(&openlist)) != NULL) {
+		if (s == target) {
+			// Zip backwards through the tree and set the square
+			// to some value to indicate our chosen path
+			do {
+				map[s->offset] = '0';
+				s = s->parent;
+			} while (s->parent->parent != NULL);
+			return s;
+		}
+		s->list = CLOSED;
+		list_del_init(&s->astar);
+
+		// Add all valid neighbor moves onto the open list
+		for (d=0; d<4; d++) {
+			n = astar_neighbor(map, s, d);	
+			if (map[n->offset] == '%' || n->list == CLOSED)
+				continue;
+			if (n->list == OPEN) {
+				if (s->g+1 < n->g) {
+					n->parent = s;
+					n->g = s->g + 1;
+				}
+			} else if (n->list == FREE) {
+				list_add(&n->astar, &openlist);
+				n->list = OPEN;
+				n->h = manhattan(n, target);
+				n->g = s->g + 1;
+				n->parent = s;
+			}
+		}
+	}
+	printf("oops, open list is empty!\n");
+	return NULL;
 }
 
 int neighbor(int row, int col, enum DIRECTION dir)
@@ -47,6 +186,13 @@ int neighbor(int row, int col, enum DIRECTION dir)
 			return loc(row, col-1);
 	}
 	return 0;
+}
+
+int time_remaining(struct Game *game)
+{
+	struct timespec curr;
+	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &curr);
+	return game->turntime - ((float)(curr.tv_nsec - game->timestamp)/1000000);
 }
 
 void do_setup(struct Game *game)
@@ -117,6 +263,9 @@ int main()
 		*index = '\0';
 
 		if (!strcmp(arg[0], "turn")) {
+			struct timespec curr;
+			clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &curr);
+			game->timestamp = curr.tv_nsec;
 			game->turn = atoi(arg[1]);
 			fprintf(stderr, "Got turn %d\n", game->turn);
 			if (game->turn) {
