@@ -11,6 +11,4 @@ void do_turn(struct Game *game)
 			}
 		}
 	}
-	fprintf(stderr, "Turn %d complete with %dms remaining\n",
-			game->turn, time_remaining(game));
 }
