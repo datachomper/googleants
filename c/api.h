@@ -21,10 +21,29 @@ struct Game {
 	int spawnradius2;
 	int player_seed;
 
+	/* bitmap indexes */
 	int *watermap;
 	int *foodmap;
 	int *antmap;
 	int *hillmap;
+
+	/* spatial pointer indexes */
+	int *ant_i;
+	int *enemyant_i;
+	int *hill_i;
+	int *enemyhill_i;
+	int *food_i;
+
+	/* lists */
+	struct list_head ant_l;
+	struct list_head enemyant_l;
+	struct list_head hill_l;
+	struct list_head enemyhill_l;
+	struct list_head food_l;
+
+	/* free lists */
+	struct list_head freeants;
+
 	long timestamp;
 };
 
@@ -35,6 +54,12 @@ struct square {
 	int g;
 	int h;
 	enum LISTS list;
+};
+
+struct ant {
+	struct list_head node;
+	int row;
+	int col;
 };
 
 int loc(int x, int y);
