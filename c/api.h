@@ -8,6 +8,21 @@ enum LISTS {FREE, CLOSED, OPEN};
 
 int ROWS, COLS;
 
+struct ant {
+	struct list_head node;
+	int row;
+	int col;
+};
+
+struct square {
+	struct list_head astar;
+	struct square *parent;
+	int offset;
+	int g;
+	int h;
+	enum LISTS list;
+};
+
 struct Game {
 	enum STATE state;
 	int turn;
@@ -28,38 +43,17 @@ struct Game {
 	int *hillmap;
 
 	/* spatial pointer indexes */
-	int *ant_i;
-	int *enemyant_i;
-	int *hill_i;
-	int *enemyhill_i;
-	int *food_i;
+	struct ant **ant_i;
+	struct square **food_i;
 
 	/* lists */
 	struct list_head ant_l;
-	struct list_head enemyant_l;
-	struct list_head hill_l;
-	struct list_head enemyhill_l;
 	struct list_head food_l;
 
 	/* free lists */
 	struct list_head freeants;
 
 	long timestamp;
-};
-
-struct square {
-	struct list_head astar;
-	struct square *parent;
-	int offset;
-	int g;
-	int h;
-	enum LISTS list;
-};
-
-struct ant {
-	struct list_head node;
-	int row;
-	int col;
 };
 
 int loc(int x, int y);

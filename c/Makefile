@@ -1,5 +1,5 @@
 all:
-	gcc -O3 -Wall -Werror -funroll-loops api.c MyBot.c -o MyBot -lrt
+	gcc -O3 -Wall -Werror -funroll-loops api.c MyBot.c -o MyBot -lrt -g
 
 clean:
 	rm -f MyBot api.o MyBot.o

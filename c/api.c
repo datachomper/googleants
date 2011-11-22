@@ -207,11 +207,8 @@ void do_setup(struct Game *game)
 	game->antmap = malloc(MAPSIZ);
 	game->hillmap = malloc(MAPSIZ);
 
-	game->ant_i = malloc(MAPSIZ);
-	game->enemyant_i = malloc(MAPSIZ);
-	game->hill_i = malloc(MAPSIZ);
-	game->enemyhill_i = malloc(MAPSIZ);
-	game->food_i = malloc(MAPSIZ);
+	game->ant_i = malloc(sizeof(*game->ant_i)*ROWS*COLS);
+	game->food_i = malloc(sizeof(*game->food_i)*ROWS*COLS);
 
 	memset(game->watermap, 0, sizeof(MAPSIZ));
 	memset(game->foodmap, 0, sizeof(MAPSIZ));
@@ -219,15 +216,9 @@ void do_setup(struct Game *game)
 	memset(game->hillmap, 0, sizeof(MAPSIZ));
 
 	memset(game->ant_i, 0, sizeof(MAPSIZ));
-	memset(game->enemyant_i, 0, sizeof(MAPSIZ));
-	memset(game->hill_i, 0, sizeof(MAPSIZ));
-	memset(game->enemyhill_i, 0, sizeof(MAPSIZ));
 	memset(game->food_i, 0, sizeof(MAPSIZ));
 
 	INIT_LIST_HEAD(&game->ant_l);
-	INIT_LIST_HEAD(&game->enemyant_l);
-	INIT_LIST_HEAD(&game->hill_l);
-	INIT_LIST_HEAD(&game->enemyhill_l);
 	INIT_LIST_HEAD(&game->food_l);
 	INIT_LIST_HEAD(&game->freeants);
 }
@@ -344,17 +335,16 @@ int main()
 					game->antmap[loc(row,col)] = owner+1;
 					if (!owner) {
 						struct ant *a;
-						int *antidx = &(*game).ant_i[loc(row,col)];
 						if (list_empty(&game->freeants)) {
 							a = malloc(sizeof(struct ant));
-							list_add_tail(&game->ant_l, &a->node);
+							list_add_tail(&a->node, &game->ant_l);
 						} else {
 							a = list_first_entry(&game->freeants, struct ant, node);
 							list_move(&a->node, &game->ant_l);
 						}
 						a->row = row;
 						a->col = col;
-						antidx = a;
+						game->ant_i[loc(row,col)] = a;
 					}
 					break;
 				case 'd':
