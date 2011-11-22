@@ -221,6 +221,7 @@ void do_setup(struct Game *game)
 	INIT_LIST_HEAD(&game->ant_l);
 	INIT_LIST_HEAD(&game->food_l);
 	INIT_LIST_HEAD(&game->freeants);
+	INIT_LIST_HEAD(&game->freefood);
 }
 
 void order(int row, int col, enum DIRECTION dir)
@@ -236,6 +237,10 @@ void do_preturn(struct Game *game)
 		game->antmap[i] = 0;
 		game->hillmap[i] = 0;
 	}
+
+	/* Cleanup the food and ants list, rebuild from scratch */
+	list_splice_init(&game->food_l, &game->freefood);
+	list_splice_init(&game->ant_l, &game->freeants);
 }
 
 void do_cleanup(struct Game *game)
@@ -321,6 +326,17 @@ int main()
 					row = atoi(arg[1]);
 					col = atoi(arg[2]);
 					game->foodmap[loc(row,col)] = 1;
+
+					struct food *f;
+					if (list_empty(&game->freefood)) {
+						f = malloc(sizeof(*f));
+						list_add_tail(&f->node, &game->food_l);
+					} else {
+						f = list_first_entry(&game->freefood, struct food, node);
+						list_move(&f->node, &game->food_l);	
+					}
+					f->loc.x = row;
+					f->loc.y = col;
 					break;
 				case 'h':
 					row = atoi(arg[1]);
@@ -333,17 +349,18 @@ int main()
 					col = atoi(arg[2]);
 					owner = atoi(arg[3]);
 					game->antmap[loc(row,col)] = owner+1;
+
 					if (!owner) {
 						struct ant *a;
 						if (list_empty(&game->freeants)) {
-							a = malloc(sizeof(struct ant));
+							a = malloc(sizeof(*a));
 							list_add_tail(&a->node, &game->ant_l);
 						} else {
 							a = list_first_entry(&game->freeants, struct ant, node);
 							list_move(&a->node, &game->ant_l);
 						}
-						a->row = row;
-						a->col = col;
+						a->loc.x = row;
+						a->loc.y = col;
 						game->ant_i[loc(row,col)] = a;
 					}
 					break;

@@ -8,10 +8,25 @@ enum LISTS {FREE, CLOSED, OPEN};
 
 int ROWS, COLS;
 
+struct loc {
+	int x;
+	int y;
+};
+
 struct ant {
 	struct list_head node;
-	int row;
-	int col;
+	struct loc loc;
+};
+
+struct food {
+	struct list_head node;
+	struct loc loc;
+};
+
+struct hill {
+	struct list_head node;
+	struct loc loc;
+	int owner;
 };
 
 struct square {
@@ -52,6 +67,7 @@ struct Game {
 
 	/* free lists */
 	struct list_head freeants;
+	struct list_head freefood;
 
 	long timestamp;
 };
@@ -61,3 +77,4 @@ char direction(short d);
 int neighbor(int row, int col, enum DIRECTION dir);
 void order(int row, int col, enum DIRECTION dir);
 int time_remaining(struct Game *game);
+char min(char a, char b);
