@@ -4,6 +4,26 @@
 #include "api.h"
 #include "list.h"
 
+void write_img(int *map, const char *name)
+{
+	FILE *fp;
+	int r,c,val;
+
+	fp = fopen(name, "w");
+	fprintf(fp, "P3\n%d %d\n255\n", COLS, ROWS);
+	for (r=0; r<ROWS; r++) {
+		for (c=0; c<COLS; c++) {
+			val = map[loc(r,c)];
+			if (val == 0)
+				fprintf(fp, "%03d %03d %03d ",0,0,0);
+			else
+				fprintf(fp, "%03d %03d %03d ",255,255,255);
+		}
+		fprintf(fp, "\n");
+	}
+	fclose(fp);
+}
+
 int loc_dist(struct loc *a, struct loc *b) {
 	int diff, dist;
 
@@ -70,6 +90,9 @@ void do_turn(struct Game *game)
 {
 	struct food *f;
 	struct ant *a, *b;
+
+	if (game->turn == 17)
+		write_img(game->viewmap, "turn2.pnm");
 
 	list_for_each_entry_safe(a, b, &game->ant_l, node) {
 		int lowest = -1;

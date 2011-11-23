@@ -72,20 +72,36 @@ int loc2offset(struct loc *a) {
 }
 
 // Calculates the manhattan distance from start to goal
-int manhattan(struct square *start, struct square *goal) {
+int manhattan(struct loc *start, struct loc *goal) {
 	int diff, dist;
 	int x1,y1,x2,y2;
 
-	x1 = start->loc.x;
-	y1 = start->loc.y;
-	x2 = goal->loc.x;
-	y2 = goal->loc.y;
+	x1 = start->x;
+	y1 = start->y;
+	x2 = goal->x;
+	y2 = goal->y;
 
 	diff = abs(x1-x2);
 	dist = min(diff, ROWS-diff);
 	diff = abs(y1-y2);
 	dist += min(diff, COLS-diff);
 	return dist;
+}
+
+int manhattan2(struct loc *start, struct loc *goal) {
+	int diff, a, b;
+	int x1,y1,x2,y2;
+
+	x1 = start->x;
+	y1 = start->y;
+	x2 = goal->x;
+	y2 = goal->y;
+
+	diff = abs(x1-x2);
+	a = min(diff, ROWS-diff);
+	diff = abs(y1-y2);
+	b = min(diff, COLS-diff);
+	return a*a+b*b;
 }
 
 struct square * get_best_f(struct list_head *openlist)
@@ -121,7 +137,7 @@ int astar(int *map, struct loc *a, struct loc *b, struct loc *next)
 	target = &slist[loc2offset(b)];
 
 	start->parent = NULL;
-	start->h = manhattan(start, target);
+	start->h = manhattan(&start->loc, &target->loc);
 	start->g = 0;
 	start->list = OPEN;
 	list_add(&start->astar, &openlist);
@@ -152,7 +168,7 @@ int astar(int *map, struct loc *a, struct loc *b, struct loc *next)
 			} else if (n->list == FREE) {
 				list_add(&n->astar, &openlist);
 				n->list = OPEN;
-				n->h = manhattan(n, target);
+				n->h = manhattan(&n->loc, &target->loc);
 				n->g = s->g + 1;
 				n->parent = s;
 			}
@@ -216,6 +232,7 @@ void do_setup(struct Game *game)
 	game->foodmap = malloc(MAPSIZ);
 	game->antmap = malloc(MAPSIZ);
 	game->hillmap = malloc(MAPSIZ);
+	game->viewmap = malloc(MAPSIZ);
 
 	game->ant_i = malloc(sizeof(*game->ant_i)*ROWS*COLS);
 	game->food_i = malloc(sizeof(*game->food_i)*ROWS*COLS);
@@ -224,6 +241,7 @@ void do_setup(struct Game *game)
 	memset(game->foodmap, 0, sizeof(MAPSIZ));
 	memset(game->antmap, 0, sizeof(MAPSIZ));
 	memset(game->hillmap, 0, sizeof(MAPSIZ));
+	memset(game->viewmap, 0, sizeof(MAPSIZ));
 
 	memset(game->ant_i, 0, sizeof(MAPSIZ));
 	memset(game->food_i, 0, sizeof(MAPSIZ));
@@ -247,6 +265,7 @@ void do_preturn(struct Game *game)
 		game->foodmap[i] = 0;
 		game->antmap[i] = 0;
 		game->hillmap[i] = 0;
+		game->viewmap[i] = 0;
 	}
 
 	/* Cleanup the food and ants list, rebuild from scratch */
@@ -360,6 +379,19 @@ int main()
 					col = atoi(arg[2]);
 					owner = atoi(arg[3]);
 					game->antmap[loc(row,col)] = owner+1;
+
+					int x,y;
+					struct loc a = {row,col};
+					for (x=0;x<ROWS;x++) {
+						for (y=0;y<COLS;y++) {
+							if (!game->viewmap[loc(x,y)]) {
+								struct loc b = {x,y};
+								int dist2 = manhattan2(&a,&b);
+								if (dist2 <= game->viewradius2)
+									game->viewmap[loc(x,y)] = 1;
+							}
+						}
+					}
 
 					if (!owner) {
 						struct ant *a;

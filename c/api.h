@@ -56,6 +56,7 @@ struct Game {
 	int *foodmap;
 	int *antmap;
 	int *hillmap;
+	int *viewmap;
 
 	/* spatial pointer indexes */
 	struct ant **ant_i;
