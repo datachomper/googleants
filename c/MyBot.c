@@ -70,16 +70,6 @@ void do_turn(struct Game *game)
 {
 	struct food *f;
 	struct ant *a, *b;
-#if 0
-	int r,c;
-	for (r=0; r<ROWS; r++) {
-		for (c=0; c<COLS; c++) {
-			if (game->antmap[loc(r,c)] == 1) {
-					order(r, c, N);
-			}
-		}
-	}
-#endif
 
 	list_for_each_entry_safe(a, b, &game->ant_l, node) {
 		int lowest = -1;
@@ -97,14 +87,11 @@ void do_turn(struct Game *game)
 		}
 		if (closest != NULL) {
 			struct square *s;
-			struct loc t;
 			fprintf(stderr, "assign a(%d,%d) to f(%d,%d)\n",
 				a->loc.x, a->loc.y,
 				closest->loc.x, closest->loc.y);
 			s = astar(game->watermap, &a->loc, &closest->loc);
-			t.x = s->offset/COLS;
-			t.y = s->offset%COLS;
-			order_loc(&a->loc, &t);
+			order_loc(&a->loc, &s->loc);
 			list_move(&a->node, &game->freefood);
 			list_move(&closest->node, &game->freeants);
 		}

@@ -32,7 +32,7 @@ struct hill {
 struct square {
 	struct list_head astar;
 	struct square *parent;
-	int offset;
+	struct loc loc;
 	int g;
 	int h;
 	enum LISTS list;

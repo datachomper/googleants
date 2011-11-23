@@ -27,12 +27,12 @@ int loc(int x, int y)
 	return (x*COLS+y);
 }
 
-struct square * astar_neighbor(int *map, struct square *s, enum DIRECTION d)
+struct square *astar_neighbor(struct loc *a, enum DIRECTION d)
 {
 	int row, col;
 
-	row = s->offset / COLS;
-	col = s->offset % COLS;
+	row = a->x;
+	col = a->y;
 
 	switch(d) {
 	case N:
@@ -67,15 +67,19 @@ char min(char a, char b) {
 	return (a < b) ? a : b;
 }
 
+int loc2offset(struct loc *a) {
+	return loc(a->x,a->y);
+}
+
 // Calculates the manhattan distance from start to goal
 int manhattan(struct square *start, struct square *goal) {
 	int diff, dist;
 	int x1,y1,x2,y2;
 
-	x1 = start->offset / COLS;
-	y1 = start->offset % COLS;
-	x2 = goal->offset / COLS;
-	y2 = goal->offset % COLS;
+	x1 = start->loc.x;
+	y1 = start->loc.y;
+	x2 = goal->loc.x;
+	y2 = goal->loc.y;
 
 	diff = abs(x1-x2);
 	dist = min(diff, ROWS-diff);
@@ -113,8 +117,8 @@ struct square * astar(int *map, struct loc *a, struct loc *b)
 
 	fprintf(stderr, "Trying to route (%d,%d) to (%d,%d)\n",
 			a->x, a->y, b->x, b->y);
-	start = &slist[loc(a->x,a->y)];
-	target = &slist[loc(b->x,b->y)];
+	start = &slist[loc2offset(a)];
+	target = &slist[loc2offset(b)];
 
 	start->parent = NULL;
 	start->h = manhattan(start, target);
@@ -136,8 +140,8 @@ struct square * astar(int *map, struct loc *a, struct loc *b)
 
 		// Add all valid neighbor moves onto the open list
 		for (d=0; d<4; d++) {
-			n = astar_neighbor(map, s, d);	
-			if (map[n->offset] == 1 || n->list == CLOSED)
+			n = astar_neighbor(&s->loc, d);	
+			if (map[loc2offset(&n->loc)] == 1 || n->list == CLOSED)
 				continue;
 			if (n->list == OPEN) {
 				if (s->g+1 < n->g) {
@@ -202,7 +206,8 @@ void do_setup(struct Game *game)
 	/* slist is used for astar */
 	slist = malloc(ROWS*COLS*sizeof(struct square));
 	for (offset=0; offset<ROWS*COLS; offset++) {
-		slist[offset].offset = offset;
+		slist[offset].loc.x = offset/COLS;
+		slist[offset].loc.y = offset%COLS;
 		slist[offset].list = FREE;
 	}
 
