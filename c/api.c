@@ -104,7 +104,7 @@ struct square * get_best_f(struct list_head *openlist)
 	return lowest;
 }
 
-struct square * astar(int *map, struct loc *a, struct loc *b)
+int astar(int *map, struct loc *a, struct loc *b, struct loc *next)
 {
 	struct square *s, *n;
 	struct square *start, *target;
@@ -133,7 +133,8 @@ struct square * astar(int *map, struct loc *a, struct loc *b)
 			do {
 				s = s->parent;
 			} while (s->parent->parent != NULL);
-			return s;
+			memcpy(next, &s->loc, sizeof(*next));
+			return 0;
 		}
 		s->list = CLOSED;
 		list_del_init(&s->astar);
@@ -158,7 +159,7 @@ struct square * astar(int *map, struct loc *a, struct loc *b)
 		}
 	}
 	printf("oops, open list is empty!\n");
-	return NULL;
+	return -1;
 }
 
 int neighbor(int row, int col, enum DIRECTION dir)

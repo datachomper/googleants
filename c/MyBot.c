@@ -86,14 +86,15 @@ void do_turn(struct Game *game)
 			}
 		}
 		if (closest != NULL) {
-			struct square *s;
-			fprintf(stderr, "assign a(%d,%d) to f(%d,%d)\n",
-				a->loc.x, a->loc.y,
-				closest->loc.x, closest->loc.y);
-			s = astar(game->watermap, &a->loc, &closest->loc);
-			order_loc(&a->loc, &s->loc);
-			list_move(&a->node, &game->freefood);
-			list_move(&closest->node, &game->freeants);
+			struct loc next;
+			if (!astar(game->watermap, &a->loc, &closest->loc, &next)) {
+				fprintf(stderr, "move a(%d,%d) to f(%d,%d)\n",
+					a->loc.x, a->loc.y,
+					next.x, next.y);
+				order_loc(&a->loc, &next);
+				list_move(&a->node, &game->freefood);
+				list_move(&closest->node, &game->freeants);
+			}
 		}
 	}
 }
