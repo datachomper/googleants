@@ -27,7 +27,7 @@ int loc(int x, int y)
 	return (x*COLS+y);
 }
 
-struct square * astar_neighbor(char *map, struct square *s, enum DIRECTION d)
+struct square * astar_neighbor(int *map, struct square *s, enum DIRECTION d)
 {
 	int row, col;
 
@@ -84,19 +84,6 @@ int manhattan(struct square *start, struct square *goal) {
 	return dist;
 }
 
-void astar_init(int rows, int cols)
-{
-	int offset;
-
-	ROWS = rows;
-	COLS = cols;
-	slist = malloc(ROWS*COLS*sizeof(struct square));
-	for (offset=0; offset<ROWS*COLS; offset++) {
-		slist[offset].offset = offset;
-		slist[offset].list = FREE;
-	}
-}
-
 struct square * get_best_f(struct list_head *openlist)
 {
 	struct square *s;
@@ -113,11 +100,21 @@ struct square * get_best_f(struct list_head *openlist)
 	return lowest;
 }
 
-struct square * astar(char *map, struct square *start, struct square *target)
+struct square * astar(int *map, struct loc *a, struct loc *b)
 {
 	struct square *s, *n;
+	struct square *start, *target;
 	LIST_HEAD(openlist);
-	int d;
+	int d, offset;
+
+	for (offset=0; offset<ROWS*COLS; offset++) {
+		slist[offset].list = FREE;
+	}
+
+	fprintf(stderr, "Trying to route (%d,%d) to (%d,%d)\n",
+			a->x, a->y, b->x, b->y);
+	start = &slist[loc(a->x,a->y)];
+	target = &slist[loc(b->x,b->y)];
 
 	start->parent = NULL;
 	start->h = manhattan(start, target);
@@ -130,7 +127,6 @@ struct square * astar(char *map, struct square *start, struct square *target)
 			// Zip backwards through the tree and set the square
 			// to some value to indicate our chosen path
 			do {
-				map[s->offset] = '0';
 				s = s->parent;
 			} while (s->parent->parent != NULL);
 			return s;
@@ -141,7 +137,7 @@ struct square * astar(char *map, struct square *start, struct square *target)
 		// Add all valid neighbor moves onto the open list
 		for (d=0; d<4; d++) {
 			n = astar_neighbor(map, s, d);	
-			if (map[n->offset] == '%' || n->list == CLOSED)
+			if (map[n->offset] == 1 || n->list == CLOSED)
 				continue;
 			if (n->list == OPEN) {
 				if (s->g+1 < n->g) {
@@ -197,10 +193,18 @@ int time_remaining(struct Game *game)
 
 void do_setup(struct Game *game)
 {
+	int offset;
 	#define MAPSIZ (game->rows * game->cols * sizeof(int))
-	
+
 	ROWS = game->rows;
 	COLS = game->cols;
+
+	/* slist is used for astar */
+	slist = malloc(ROWS*COLS*sizeof(struct square));
+	for (offset=0; offset<ROWS*COLS; offset++) {
+		slist[offset].offset = offset;
+		slist[offset].list = FREE;
+	}
 
 	game->watermap = malloc(MAPSIZ);
 	game->foodmap = malloc(MAPSIZ);
@@ -222,6 +226,7 @@ void do_setup(struct Game *game)
 	INIT_LIST_HEAD(&game->food_l);
 	INIT_LIST_HEAD(&game->freeants);
 	INIT_LIST_HEAD(&game->freefood);
+
 }
 
 void order(int row, int col, enum DIRECTION dir)
