@@ -22,53 +22,16 @@ char direction(short d)
 		return 'W';
 }
 
-int loc(int x, int y)
-{
+int loc(int x, int y) {
 	return (x*COLS+y);
-}
-
-struct square *astar_neighbor(struct loc *a, enum DIRECTION d)
-{
-	int row, col;
-
-	row = a->x;
-	col = a->y;
-
-	switch(d) {
-	case N:
-		if (row == 0)
-			row = ROWS-1;
-		else
-			row = row-1;
-		break;
-	case E:
-		if (col == COLS-1)
-			col = 0;
-		else
-			col = col+1;
-		break;
-	case S:
-		if (row == ROWS-1)
-			row = 0;
-		else
-			row = row+1;
-		break;
-	case W:
-		if (col == 0)
-			col = COLS-1;
-		else
-			col = col-1;
-		break;
-	}
-	return &slist[loc(row,col)];
-}
-
-char min(char a, char b) {
-	return (a < b) ? a : b;
 }
 
 int loc2offset(struct loc *a) {
 	return loc(a->x,a->y);
+}
+
+char min(char a, char b) {
+	return (a < b) ? a : b;
 }
 
 // Calculates the manhattan distance from start to goal
@@ -104,80 +67,6 @@ int manhattan2(struct loc *start, struct loc *goal) {
 	return a*a+b*b;
 }
 
-struct square * get_best_f(struct list_head *openlist)
-{
-	struct square *s;
-	struct square *lowest = NULL;
-	int lowest_f;
-
-	lowest = list_first_entry(openlist, struct square, astar);
-	lowest_f = lowest->g+lowest->h;
-
-	list_for_each_entry(s, openlist, astar) {
-		if ((s->g + s->h) < lowest_f)
-			lowest = s;
-	}
-	return lowest;
-}
-
-int astar(int *map, struct loc *a, struct loc *b, struct loc *next)
-{
-	struct square *s, *n;
-	struct square *start, *target;
-	LIST_HEAD(openlist);
-	int d, offset;
-
-	for (offset=0; offset<ROWS*COLS; offset++) {
-		slist[offset].list = FREE;
-	}
-
-	fprintf(stderr, "Trying to route (%d,%d) to (%d,%d)\n",
-			a->x, a->y, b->x, b->y);
-	start = &slist[loc2offset(a)];
-	target = &slist[loc2offset(b)];
-
-	start->parent = NULL;
-	start->h = manhattan(&start->loc, &target->loc);
-	start->g = 0;
-	start->list = OPEN;
-	list_add(&start->astar, &openlist);
-
-	while ((s = get_best_f(&openlist)) != NULL) {
-		if (s == target) {
-			// Zip backwards through the tree and set the square
-			// to some value to indicate our chosen path
-			do {
-				s = s->parent;
-			} while (s->parent->parent != NULL);
-			memcpy(next, &s->loc, sizeof(*next));
-			return 0;
-		}
-		s->list = CLOSED;
-		list_del_init(&s->astar);
-
-		// Add all valid neighbor moves onto the open list
-		for (d=0; d<4; d++) {
-			n = astar_neighbor(&s->loc, d);	
-			if (map[loc2offset(&n->loc)] == 1 || n->list == CLOSED)
-				continue;
-			if (n->list == OPEN) {
-				if (s->g+1 < n->g) {
-					n->parent = s;
-					n->g = s->g + 1;
-				}
-			} else if (n->list == FREE) {
-				list_add(&n->astar, &openlist);
-				n->list = OPEN;
-				n->h = manhattan(&n->loc, &target->loc);
-				n->g = s->g + 1;
-				n->parent = s;
-			}
-		}
-	}
-	printf("oops, open list is empty!\n");
-	return -1;
-}
-
 int neighbor(int row, int col, enum DIRECTION dir)
 {
 	switch(dir) {
@@ -205,6 +94,79 @@ int neighbor(int row, int col, enum DIRECTION dir)
 	return 0;
 }
 
+
+struct square * get_best_f(struct list_head *openlist)
+{
+	struct square *s;
+	struct square *lowest = NULL;
+	int lowest_f;
+
+	lowest = list_first_entry(openlist, struct square, astar);
+	lowest_f = lowest->g+lowest->h;
+
+	list_for_each_entry(s, openlist, astar) {
+		if ((s->g + s->h) < lowest_f)
+			lowest = s;
+	}
+	return lowest;
+}
+
+int astar(int *map, struct loc *a, struct loc *b, struct loc *next)
+{
+	struct square *s, *n;
+	struct square *start, *target;
+	LIST_HEAD(openlist);
+	int d, offset;
+
+	for (offset=0; offset<ROWS*COLS; offset++) {
+		slist[offset].list = FREE;
+	}
+
+	start = &slist[loc2offset(a)];
+	target = &slist[loc2offset(b)];
+
+	start->parent = NULL;
+	start->h = manhattan(&start->loc, &target->loc);
+	start->g = 0;
+	start->list = OPEN;
+	list_add(&start->astar, &openlist);
+
+	while ((s = get_best_f(&openlist)) != NULL) {
+		if (s == target) {
+			// Zip backwards through the tree and set the square
+			// to some value to indicate our chosen path
+			do {
+				s = s->parent;
+			} while (s->parent->parent != NULL);
+			memcpy(next, &s->loc, sizeof(*next));
+			return 0;
+		}
+		s->list = CLOSED;
+		list_del_init(&s->astar);
+
+		// Add all valid neighbor moves onto the open list
+		for (d=0; d<4; d++) {
+			n = &slist[neighbor(s->loc.x, s->loc.y, d)];
+			if (map[loc2offset(&n->loc)] == 1 || n->list == CLOSED)
+				continue;
+			if (n->list == OPEN) {
+				if (s->g+1 < n->g) {
+					n->parent = s;
+					n->g = s->g + 1;
+				}
+			} else if (n->list == FREE) {
+				list_add(&n->astar, &openlist);
+				n->list = OPEN;
+				n->h = manhattan(&n->loc, &target->loc);
+				n->g = s->g + 1;
+				n->parent = s;
+			}
+		}
+	}
+	printf("oops, open list is empty!\n");
+	return -1;
+}
+
 int time_remaining(struct Game *game)
 {
 	struct timespec curr;
@@ -221,7 +183,7 @@ void do_setup(struct Game *game)
 	COLS = game->cols;
 
 	/* slist is used for astar */
-	slist = malloc(ROWS*COLS*sizeof(struct square));
+	slist = malloc(ROWS*COLS*sizeof(*slist));
 	for (offset=0; offset<ROWS*COLS; offset++) {
 		slist[offset].loc.x = offset/COLS;
 		slist[offset].loc.y = offset%COLS;
@@ -237,20 +199,19 @@ void do_setup(struct Game *game)
 	game->ant_i = malloc(sizeof(*game->ant_i)*ROWS*COLS);
 	game->food_i = malloc(sizeof(*game->food_i)*ROWS*COLS);
 
-	memset(game->watermap, 0, sizeof(MAPSIZ));
-	memset(game->foodmap, 0, sizeof(MAPSIZ));
-	memset(game->antmap, 0, sizeof(MAPSIZ));
-	memset(game->hillmap, 0, sizeof(MAPSIZ));
-	memset(game->viewmap, 0, sizeof(MAPSIZ));
+	memset(game->watermap, 0, MAPSIZ);
+	memset(game->foodmap, 0, MAPSIZ);
+	memset(game->antmap, 0, MAPSIZ);
+	memset(game->hillmap, 0, MAPSIZ);
+	memset(game->viewmap, 0, MAPSIZ);
 
-	memset(game->ant_i, 0, sizeof(MAPSIZ));
-	memset(game->food_i, 0, sizeof(MAPSIZ));
+	memset(game->ant_i, 0, sizeof(*game->ant_i)*ROWS*COLS);
+	memset(game->food_i, 0, sizeof(*game->food_i)*ROWS*COLS);
 
 	INIT_LIST_HEAD(&game->ant_l);
 	INIT_LIST_HEAD(&game->food_l);
 	INIT_LIST_HEAD(&game->freeants);
 	INIT_LIST_HEAD(&game->freefood);
-
 }
 
 void order(int row, int col, enum DIRECTION dir)
@@ -260,13 +221,10 @@ void order(int row, int col, enum DIRECTION dir)
 
 void do_preturn(struct Game *game)
 {
-	int i;
-	for(i=0; i<ROWS*COLS; i++) {
-		game->foodmap[i] = 0;
-		game->antmap[i] = 0;
-		game->hillmap[i] = 0;
-		game->viewmap[i] = 0;
-	}
+	memset(game->foodmap, 0, sizeof(*game->foodmap));
+	memset(game->antmap, 0, sizeof(*game->antmap));
+	memset(game->hillmap, 0, sizeof(*game->hillmap));
+	memset(game->viewmap, 0, sizeof(*game->viewmap));
 
 	/* Cleanup the food and ants list, rebuild from scratch */
 	list_splice_init(&game->food_l, &game->freefood);
@@ -276,11 +234,6 @@ void do_preturn(struct Game *game)
 void do_cleanup(struct Game *game)
 {
 	fflush(NULL);
-	free(game->watermap);
-	free(game->foodmap);
-	free(game->antmap);
-	free(game->hillmap);
-	free(game);
 }
 
 int main()
