@@ -210,8 +210,10 @@ void do_setup(struct Game *game)
 
 	INIT_LIST_HEAD(&game->ant_l);
 	INIT_LIST_HEAD(&game->food_l);
+	INIT_LIST_HEAD(&game->goals);
 	INIT_LIST_HEAD(&game->freeants);
 	INIT_LIST_HEAD(&game->freefood);
+	INIT_LIST_HEAD(&game->freegoals);
 }
 
 void order(int row, int col, enum DIRECTION dir)
@@ -229,6 +231,7 @@ void do_preturn(struct Game *game)
 	/* Cleanup the food and ants list, rebuild from scratch */
 	list_splice_init(&game->food_l, &game->freefood);
 	list_splice_init(&game->ant_l, &game->freeants);
+	list_splice_init(&game->goals, &game->freegoals);
 }
 
 void do_cleanup(struct Game *game)

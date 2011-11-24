@@ -90,9 +90,23 @@ void do_turn(struct Game *game)
 {
 	struct food *f;
 	struct ant *a, *b;
+	struct goal *g;
 
-	if (game->turn == 17)
-		write_img(game->viewmap, "turn2.pnm");
+	list_for_each_entry(f, &game->food_l, node) {
+		if (list_empty(&game->freegoals)) {
+			g = malloc(sizeof(*g));
+			list_add_tail(&g->node, &game->goals);
+		} else {
+			g = list_first_entry(&game->freegoals, struct goal, node);
+			list_move(&g->node, &game->goals);
+		}
+		memcpy(&g->loc, &f->loc, sizeof(g->loc));
+		g->type = FOOD;
+	}
+
+	list_for_each_entry(g, &game->goals, node) {
+		fprintf(stderr, "Got goal (%d,%d) type %d\n", g->loc.x, g->loc.y, g->type);
+	}
 
 	list_for_each_entry_safe(a, b, &game->ant_l, node) {
 		int lowest = -1;

@@ -5,6 +5,7 @@
 enum STATE {SETUP, INGAME, END};
 enum DIRECTION { N,E,S,W };
 enum LISTS {FREE, CLOSED, OPEN};
+enum GOALTYPE {HOLD, FOOD, EXPLORE};
 
 int ROWS, COLS;
 
@@ -38,6 +39,12 @@ struct square {
 	enum LISTS list;
 };
 
+struct goal {
+	struct list_head node;
+	struct loc loc;
+	enum GOALTYPE type;
+};
+
 struct Game {
 	enum STATE state;
 	int turn;
@@ -65,10 +72,12 @@ struct Game {
 	/* lists */
 	struct list_head ant_l;
 	struct list_head food_l;
+	struct list_head goals;
 
 	/* free lists */
 	struct list_head freeants;
 	struct list_head freefood;
+	struct list_head freegoals;
 
 	long timestamp;
 };
