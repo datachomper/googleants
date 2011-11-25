@@ -101,6 +101,9 @@ struct square * get_best_f(struct list_head *openlist)
 	struct square *lowest = NULL;
 	int lowest_f;
 
+	if (list_empty(openlist))
+			return NULL;
+
 	lowest = list_first_entry(openlist, struct square, astar);
 	lowest_f = lowest->g+lowest->h;
 
@@ -116,6 +119,7 @@ int astar(int *map, struct loc *a, struct loc *b, struct loc *next)
 	struct square *s, *n;
 	struct square *start, *target;
 	int d, offset;
+	int visited = 0;
 	LIST_HEAD(openlist);
 
 	for (offset=0; offset<ROWS*COLS; offset++) {
@@ -132,12 +136,12 @@ int astar(int *map, struct loc *a, struct loc *b, struct loc *next)
 	list_add(&start->astar, &openlist);
 
 	while ((s = get_best_f(&openlist)) != NULL) {
+		visited++;
 		if (s == target) {
 			// Zip backwards through the tree and set the square
 			// to some value to indicate our chosen path
-			do {
-				s = s->parent;
-			} while (s->parent->parent != NULL);
+			while (s->parent != NULL && s->parent->parent != NULL)
+					s = s->parent;
 			memcpy(next, &s->loc, sizeof(*next));
 			return 0;
 		}
@@ -163,7 +167,7 @@ int astar(int *map, struct loc *a, struct loc *b, struct loc *next)
 			}
 		}
 	}
-	printf("oops, open list is empty!\n");
+	fprintf(stderr, "oops, open list is empty!, visited %d nodes\n", visited);
 	return -1;
 }
 
@@ -195,6 +199,7 @@ void do_setup(struct Game *game)
 	game->antmap = malloc(MAPSIZ);
 	game->hillmap = malloc(MAPSIZ);
 	game->viewmap = malloc(MAPSIZ);
+	game->obsmap = malloc(MAPSIZ);
 
 	game->ant_i = malloc(sizeof(*game->ant_i)*ROWS*COLS);
 	game->food_i = malloc(sizeof(*game->food_i)*ROWS*COLS);
@@ -204,6 +209,7 @@ void do_setup(struct Game *game)
 	memset(game->antmap, 0, MAPSIZ);
 	memset(game->hillmap, 0, MAPSIZ);
 	memset(game->viewmap, 0, MAPSIZ);
+	memset(game->obsmap, 0, MAPSIZ);
 
 	memset(game->ant_i, 0, sizeof(*game->ant_i)*ROWS*COLS);
 	memset(game->food_i, 0, sizeof(*game->food_i)*ROWS*COLS);
@@ -223,10 +229,11 @@ void order(int row, int col, enum DIRECTION dir)
 
 void do_preturn(struct Game *game)
 {
-	memset(game->foodmap, 0, sizeof(*game->foodmap));
-	memset(game->antmap, 0, sizeof(*game->antmap));
-	memset(game->hillmap, 0, sizeof(*game->hillmap));
-	memset(game->viewmap, 0, sizeof(*game->viewmap));
+	memset(game->foodmap, 0, sizeof(*game->foodmap)*ROWS*COLS);
+	memset(game->antmap, 0, sizeof(*game->antmap)*ROWS*COLS);
+	memset(game->hillmap, 0, sizeof(*game->hillmap)*ROWS*COLS);
+	memset(game->viewmap, 0, sizeof(*game->viewmap)*ROWS*COLS);
+	memset(game->obsmap, 0, sizeof(*game->viewmap)*ROWS*COLS);
 
 	/* Cleanup the food and ants list, rebuild from scratch */
 	list_splice_init(&game->food_l, &game->freefood);

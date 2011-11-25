@@ -9,18 +9,24 @@ void write_img(int *map, const char *name)
 {
 	FILE *fp;
 	int r,c,val;
+	int x,y;
+	#define ZOOM 5
 
 	fp = fopen(name, "w");
-	fprintf(fp, "P3\n%d %d\n255\n", COLS, ROWS);
+	fprintf(fp, "P3\n%d %d\n255\n", COLS*ZOOM, ROWS*ZOOM);
 	for (r=0; r<ROWS; r++) {
-		for (c=0; c<COLS; c++) {
-			val = map[loc(r,c)];
-			if (val == 0)
-				fprintf(fp, "%03d %03d %03d ",0,0,0);
-			else
-				fprintf(fp, "%03d %03d %03d ",255,255,255);
+		for (x=0; x<ZOOM; x++) {
+			for (c=0; c<COLS; c++) {
+				val = map[loc(r,c)];
+				for (y=0; y<ZOOM; y++) {
+					if (val == 1)
+						fprintf(fp, "%03d %03d %03d ",0,0,0);
+					else
+						fprintf(fp, "%03d %03d %03d ",255,255,255);
+				}
+			}
+			fprintf(fp, "\n");
 		}
-		fprintf(fp, "\n");
 	}
 	fclose(fp);
 }
@@ -120,8 +126,19 @@ int cmp_food(void *pvt, struct list_head *a, struct list_head *b) {
 void do_turn(struct Game *game)
 {
 	struct food *f;
-	struct ant *a, *b;
 	struct goal *g, *g2;
+	int x;
+
+	/* Generate obstacle map from water + antmap */
+	for (x=0; x<ROWS*COLS; x++) {
+			game->obsmap[x] = (game->watermap[x] || game->antmap[x]) ? 1 : 0;
+	}
+
+	if (game->turn < 50) {
+			char *mapname = malloc(BUFSIZ);
+			sprintf(mapname, "maps/turn%d.pnm", game->turn);
+			write_img(game->obsmap, mapname);
+	}
 
 	list_for_each_entry(f, &game->food_l, node) {
 		if (list_empty(&game->freegoals)) {
@@ -155,45 +172,19 @@ void do_turn(struct Game *game)
 			continue;
 		}
 
-		if (!astar(game->watermap, &a->loc, &g->loc, &next)) {
+		if (!astar(game->obsmap, &a->loc, &g->loc, &next)) {
 			fprintf(stderr, "move a(%d,%d) to g(%d,%d)\n",
 				a->loc.x, a->loc.y,
 				next.x, next.y);
 			order_loc(&a->loc, &next);
+			game->obsmap[loc2offset(&a->loc)] = 0;
+			game->obsmap[loc2offset(&next)] = 1;
 			list_move(&a->node, &game->freeants);
 			list_move(&g->node, &game->freegoals);
 		} else {
 			fprintf(stderr, "No route for a(%d,%d) to g(%d,%d)\n",
 				a->loc.x, a->loc.y,
 				g->loc.x, g->loc.y);
-		}
-	}
-	return;
-
-	list_for_each_entry_safe(a, b, &game->ant_l, node) {
-		int lowest = -1;
-		struct food *closest = NULL;
-
-		if (list_empty(&game->food_l))
-			break;
-
-		list_for_each_entry(f, &game->food_l, node) {
-			int dist = loc_dist(&f->loc, &a->loc);
-			if ((lowest == -1) || dist < lowest) {
-				lowest = dist;
-				closest = f;
-			}
-		}
-		if (closest != NULL) {
-			struct loc next;
-			if (!astar(game->watermap, &a->loc, &closest->loc, &next)) {
-				fprintf(stderr, "move a(%d,%d) to f(%d,%d)\n",
-					a->loc.x, a->loc.y,
-					next.x, next.y);
-				order_loc(&a->loc, &next);
-				list_move(&a->node, &game->freefood);
-				list_move(&closest->node, &game->freeants);
-			}
 		}
 	}
 }

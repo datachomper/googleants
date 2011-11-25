@@ -64,6 +64,7 @@ struct Game {
 	int *antmap;
 	int *hillmap;
 	int *viewmap;
+	int *obsmap;
 
 	/* spatial pointer indexes */
 	struct ant **ant_i;
@@ -89,3 +90,4 @@ void order(int row, int col, enum DIRECTION dir);
 int time_remaining(struct Game *game);
 char min(char a, char b);
 int astar(int *map, struct loc *a, struct loc *b, struct loc *next);
+int loc2offset(struct loc *a);
