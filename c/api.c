@@ -115,8 +115,8 @@ int astar(int *map, struct loc *a, struct loc *b, struct loc *next)
 {
 	struct square *s, *n;
 	struct square *start, *target;
-	LIST_HEAD(openlist);
 	int d, offset;
+	LIST_HEAD(openlist);
 
 	for (offset=0; offset<ROWS*COLS; offset++) {
 		slist[offset].list = FREE;

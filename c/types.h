@@ -3,6 +3,8 @@
 
 #define LIST_POISON1 ((void *)0x10101010)
 #define LIST_POISON2 ((void *)0x20202020)
+#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
+#define EXPORT_SYMBOL(__x__)
 
 struct list_head {
         struct list_head *next, *prev;
@@ -33,5 +35,10 @@ struct hlist_node {
 #define container_of(ptr, type, member) ({                      \
         const typeof( ((type *)0)->member ) *__mptr = (ptr);    \
         (type *)( (char *)__mptr - offsetof(type,member) );})
+
+
+#ifndef NULL
+#define NULL 0
+#endif
 
 #endif

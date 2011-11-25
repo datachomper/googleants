@@ -3,6 +3,7 @@
 #include <string.h>
 #include "api.h"
 #include "list.h"
+#include "list_sort.h"
 
 void write_img(int *map, const char *name)
 {
@@ -86,11 +87,41 @@ void order_loc(struct loc *ant, struct loc *to) {
 	order(ant->x, ant->y, loc_dir(ant,to));
 }
 
+static struct ant *find_nearest_idle_ant(struct Game *game, struct loc *loc)
+{
+	struct ant *ant;
+	struct ant *closest = NULL;
+	int lowest = -1;
+
+	list_for_each_entry(ant, &game->ant_l, node) {
+		int dist = loc_dist(loc, &ant->loc);
+		if ((lowest == -1) || dist < lowest) {
+			lowest = dist;
+			closest = ant;
+		}
+	}
+	return closest;
+}
+
+int cmp_food(void *pvt, struct list_head *a, struct list_head *b) {
+	struct Game *game = pvt;
+	struct food *food_a = container_of(a, struct food, node);
+	struct food *food_b = container_of(b, struct food, node);
+	struct ant *ant_a = find_nearest_idle_ant(game, &food_a->loc);
+	struct ant *ant_b = find_nearest_idle_ant(game, &food_b->loc);
+	
+	if (!ant_a || !ant_b)
+		return 0;
+
+	return (loc_dist(&food_a->loc, &ant_a->loc) - 
+		    loc_dist(&food_b->loc, &ant_b->loc));
+}
+
 void do_turn(struct Game *game)
 {
 	struct food *f;
 	struct ant *a, *b;
-	struct goal *g;
+	struct goal *g, *g2;
 
 	list_for_each_entry(f, &game->food_l, node) {
 		if (list_empty(&game->freegoals)) {
@@ -104,9 +135,40 @@ void do_turn(struct Game *game)
 		g->type = FOOD;
 	}
 
-	list_for_each_entry(g, &game->goals, node) {
-		fprintf(stderr, "Got goal (%d,%d) type %d\n", g->loc.x, g->loc.y, g->type);
+	list_sort(game, &game->goals, cmp_food);
+
+	list_for_each_entry_safe(g, g2, &game->goals, node) {
+		struct ant *a = NULL;
+		struct loc next;
+
+		if (list_empty(&game->ant_l))
+				break;
+
+		a = find_nearest_idle_ant(game, &g->loc);
+		if (!a) {
+			fprintf(stderr, "No ant for goal (%d,%d)\n", a->loc.x, a->loc.y);
+			continue;
+		}
+
+		if (!memcmp(&a->loc, &g->loc, sizeof(a->loc))) {
+			fprintf(stderr, "Ant holding on (%d,%d)\n", a->loc.x, a->loc.y);
+			continue;
+		}
+
+		if (!astar(game->watermap, &a->loc, &g->loc, &next)) {
+			fprintf(stderr, "move a(%d,%d) to g(%d,%d)\n",
+				a->loc.x, a->loc.y,
+				next.x, next.y);
+			order_loc(&a->loc, &next);
+			list_move(&a->node, &game->freeants);
+			list_move(&g->node, &game->freegoals);
+		} else {
+			fprintf(stderr, "No route for a(%d,%d) to g(%d,%d)\n",
+				a->loc.x, a->loc.y,
+				g->loc.x, g->loc.y);
+		}
 	}
+	return;
 
 	list_for_each_entry_safe(a, b, &game->ant_l, node) {
 		int lowest = -1;
