@@ -222,10 +222,17 @@ void do_turn(struct Game *game)
 		struct loc n, highest_n;
 		for (d=0; d<4; d++) {
 			loc_neighbor(&a->loc, &n, d);
+			if (game->obsmap[loc2offset(&n)])
+					continue;
 			nval = game->flowaway[loc2offset(&n)];
 			if (highest == -1 || nval > highest) {
 					highest = nval;
 					highest_n = n;
+			} else if (nval == highest) {
+				if (rand() > RAND_MAX/2) {
+					highest = nval;
+					highest_n = n;
+				}
 			}
 		}
 		order_loc(&a->loc, &highest_n);

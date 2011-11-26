@@ -305,6 +305,7 @@ int main()
 				game->spawnradius2 = atoi(arg[1]);
 			} else if (!strcmp(arg[0], "player_seed")) {
 				game->player_seed = atoi(arg[1]);
+				srand(game->player_seed);
 			} else if (!strcmp(arg[0], "ready")) {
 				do_setup(game);
 				fprintf(stdout, "go\n");
