@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <limits.h>
 #include "types.h"
 #include "list.h"
 #include "api.h"
@@ -186,20 +187,13 @@ void do_setup(struct Game *game)
 	ROWS = game->rows;
 	COLS = game->cols;
 
-	/* slist is used for astar */
-	slist = malloc(ROWS*COLS*sizeof(*slist));
-	for (offset=0; offset<ROWS*COLS; offset++) {
-		slist[offset].loc.x = offset/COLS;
-		slist[offset].loc.y = offset%COLS;
-		slist[offset].list = FREE;
-	}
-
 	game->watermap = malloc(MAPSIZ);
 	game->foodmap = malloc(MAPSIZ);
 	game->antmap = malloc(MAPSIZ);
 	game->hillmap = malloc(MAPSIZ);
 	game->viewmap = malloc(MAPSIZ);
 	game->obsmap = malloc(MAPSIZ);
+	game->flowaway = malloc(MAPSIZ);
 
 	game->ant_i = malloc(sizeof(*game->ant_i)*ROWS*COLS);
 	game->food_i = malloc(sizeof(*game->food_i)*ROWS*COLS);
@@ -213,6 +207,15 @@ void do_setup(struct Game *game)
 
 	memset(game->ant_i, 0, sizeof(*game->ant_i)*ROWS*COLS);
 	memset(game->food_i, 0, sizeof(*game->food_i)*ROWS*COLS);
+
+	/* slist is used for astar */
+	slist = malloc(ROWS*COLS*sizeof(*slist));
+	for (offset=0; offset<ROWS*COLS; offset++) {
+		slist[offset].loc.x = offset/COLS;
+		slist[offset].loc.y = offset%COLS;
+		slist[offset].list = FREE;
+		game->flowaway[offset] = INT_MAX;
+	}
 
 	INIT_LIST_HEAD(&game->ant_l);
 	INIT_LIST_HEAD(&game->food_l);
@@ -314,6 +317,7 @@ int main()
 					row = atoi(arg[1]);
 					col = atoi(arg[2]);
 					game->watermap[loc(row,col)] = 1;
+					game->flowaway[loc(row,col)] = 0;
 					break;
 				case 'f':
 					row = atoi(arg[1]);
@@ -336,6 +340,7 @@ int main()
 					col = atoi(arg[2]);
 					owner = atoi(arg[3]);
 					game->hillmap[loc(row,col)] = owner+1;
+					game->flowaway[loc(row,col)] = 1;
 					break;
 				case 'a':
 					row = atoi(arg[1]);

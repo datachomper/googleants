@@ -13,14 +13,17 @@ void write_img(int *map, const char *name)
 	#define ZOOM 5
 
 	fp = fopen(name, "w");
+	fprintf(stderr, "rows %d cols %d\n", ROWS, COLS);
 	fprintf(fp, "P3\n%d %d\n255\n", COLS*ZOOM, ROWS*ZOOM);
 	for (r=0; r<ROWS; r++) {
 		for (x=0; x<ZOOM; x++) {
 			for (c=0; c<COLS; c++) {
 				val = map[loc(r,c)];
 				for (y=0; y<ZOOM; y++) {
-					if (val == 1)
+					if (val == 0)
 						fprintf(fp, "%03d %03d %03d ",0,0,0);
+					else if ((val>0) && val<255)
+						fprintf(fp, "%03d %03d %03d ",100,100,100);
 					else
 						fprintf(fp, "%03d %03d %03d ",255,255,255);
 				}
@@ -127,17 +130,41 @@ void do_turn(struct Game *game)
 {
 	struct food *f;
 	struct goal *g, *g2;
-	int x;
+	int x,y;
+	struct ant *a, *a2;
 
 	/* Generate obstacle map from water + antmap */
 	for (x=0; x<ROWS*COLS; x++) {
 			game->obsmap[x] = (game->watermap[x] || game->antmap[x]) ? 1 : 0;
 	}
 
+	/* Slowly create a BFS map to flow ants away from the hill */
+	for (x=0; x<ROWS; x++) {
+			for (y=0; y<COLS; y++) {
+				struct loc a = {x,y};
+				int d;
+				int *aval = &game->flowaway[loc(x,y)];
+
+				if (*aval == 0 || !game->viewmap[loc(x,y)])
+						continue;
+
+				for (d=0; d<4; d++) {
+					struct loc b;
+					int nval;
+					loc_neighbor(&a, &b, d);
+					nval = game->flowaway[loc2offset(&b)];
+					if (nval == 0)
+							continue;
+					if (nval < *aval)
+							*aval = nval+1;
+				}
+			}
+	}
+
 	if (game->turn < 50) {
 			char *mapname = malloc(BUFSIZ);
 			sprintf(mapname, "maps/turn%d.pnm", game->turn);
-			write_img(game->obsmap, mapname);
+			write_img(game->flowaway, mapname);
 	}
 
 	list_for_each_entry(f, &game->food_l, node) {
@@ -186,5 +213,24 @@ void do_turn(struct Game *game)
 				a->loc.x, a->loc.y,
 				g->loc.x, g->loc.y);
 		}
+	}
+
+	/* Leftover ants after goals are assigned */
+	list_for_each_entry_safe(a, a2, &game->ant_l, node) {
+		int d, nval;
+		int highest = -1;
+		struct loc n, highest_n;
+		for (d=0; d<4; d++) {
+			loc_neighbor(&a->loc, &n, d);
+			nval = game->flowaway[loc2offset(&n)];
+			if (highest == -1 || nval > highest) {
+					highest = nval;
+					highest_n = n;
+			}
+		}
+		order_loc(&a->loc, &highest_n);
+		game->obsmap[loc2offset(&a->loc)] = 0;
+		game->obsmap[loc2offset(&highest_n)] = 1;
+		list_move(&a->node, &game->freeants);
 	}
 }
