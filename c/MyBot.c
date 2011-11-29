@@ -13,7 +13,6 @@ void write_img(int *map, const char *name)
 	#define ZOOM 5
 
 	fp = fopen(name, "w");
-	fprintf(stderr, "rows %d cols %d\n", ROWS, COLS);
 	fprintf(fp, "P3\n%d %d\n255\n", COLS*ZOOM, ROWS*ZOOM);
 	for (r=0; r<ROWS; r++) {
 		for (x=0; x<ZOOM; x++) {
