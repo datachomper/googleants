@@ -341,7 +341,8 @@ int main()
 					col = atoi(arg[2]);
 					owner = atoi(arg[3]);
 					game->hillmap[loc(row,col)] = owner+1;
-					game->flowaway[loc(row,col)] = 1;
+					if (!owner)
+						game->flowaway[loc(row,col)] = 1;
 					break;
 				case 'a':
 					row = atoi(arg[1]);
