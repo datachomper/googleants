@@ -219,6 +219,7 @@ void do_setup(struct Game *game)
 
 	INIT_LIST_HEAD(&game->ant_l);
 	INIT_LIST_HEAD(&game->food_l);
+	INIT_LIST_HEAD(&game->enemy_hill_l);
 	INIT_LIST_HEAD(&game->goals);
 	INIT_LIST_HEAD(&game->freeants);
 	INIT_LIST_HEAD(&game->freefood);
@@ -242,6 +243,7 @@ void do_preturn(struct Game *game)
 	list_splice_init(&game->food_l, &game->freefood);
 	list_splice_init(&game->ant_l, &game->freeants);
 	list_splice_init(&game->goals, &game->freegoals);
+	//list_splice_init(&game->enemy_hill_l, &game->freegoals);
 }
 
 void do_cleanup(struct Game *game)
@@ -341,8 +343,22 @@ int main()
 					col = atoi(arg[2]);
 					owner = atoi(arg[3]);
 					game->hillmap[loc(row,col)] = owner+1;
-					if (!owner)
+					if (!owner) {
 						game->flowaway[loc(row,col)] = 1;
+					} else {
+						struct goal *g;
+						if (list_empty(&game->freegoals)) {
+							g = malloc(sizeof(*g));
+							list_add_tail(&g->node, &game->enemy_hill_l);
+						} else {
+							g = list_first_entry(&game->freegoals, struct goal, node);
+							list_move(&g->node, &game->enemy_hill_l);
+						}
+						g->loc.x = row;
+						g->loc.y = col;
+						g->type = ATTACK;
+						fprintf(stderr, "Spotted enemy hill\n");
+					}
 					break;
 				case 'a':
 					row = atoi(arg[1]);

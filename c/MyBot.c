@@ -160,11 +160,13 @@ void do_turn(struct Game *game)
 			}
 	}
 
+#if 0
 	if (game->turn < 50) {
 			char *mapname = malloc(BUFSIZ);
 			sprintf(mapname, "maps/turn%d.pnm", game->turn);
 			write_img(game->flowaway, mapname);
 	}
+#endif
 
 	list_for_each_entry(f, &game->food_l, node) {
 		if (list_empty(&game->freegoals)) {
@@ -214,29 +216,49 @@ void do_turn(struct Game *game)
 		}
 	}
 
+	/* If we see an enemy ant hill, zerg rush it */
 	/* Leftover ants after goals are assigned */
 	list_for_each_entry_safe(a, a2, &game->ant_l, node) {
-		int d, nval;
-		int highest = -1;
-		struct loc n, highest_n;
-		for (d=0; d<4; d++) {
-			loc_neighbor(&a->loc, &n, d);
-			if (game->obsmap[loc2offset(&n)])
-					continue;
-			nval = game->flowaway[loc2offset(&n)];
-			if (highest == -1 || nval > highest) {
-					highest = nval;
-					highest_n = n;
-			} else if (nval == highest) {
-				if (rand() > RAND_MAX/2) {
-					highest = nval;
-					highest_n = n;
+		if (!list_empty(&game->enemy_hill_l)) {
+			struct goal *hill;
+			struct loc next;
+			hill = list_first_entry(&game->enemy_hill_l, struct goal, node);
+			if (!astar(game->obsmap, &a->loc, &hill->loc, &next)) {
+				fprintf(stderr, "move a(%d,%d) to g(%d,%d)\n",
+					a->loc.x, a->loc.y,
+					next.x, next.y);
+				order_loc(&a->loc, &next);
+				game->obsmap[loc2offset(&a->loc)] = 0;
+				game->obsmap[loc2offset(&next)] = 1;
+				list_move(&a->node, &game->freeants);
+			} else {
+				fprintf(stderr, "No route for a(%d,%d) to g(%d,%d)\n",
+					a->loc.x, a->loc.y,
+					g->loc.x, g->loc.y);
+			}
+		} else {
+			int d, nval;
+			int highest = -1;
+			struct loc n, highest_n;
+			for (d=0; d<4; d++) {
+				loc_neighbor(&a->loc, &n, d);
+				if (game->obsmap[loc2offset(&n)])
+						continue;
+				nval = game->flowaway[loc2offset(&n)];
+				if (highest == -1 || nval > highest) {
+						highest = nval;
+						highest_n = n;
+				} else if (nval == highest) {
+					if (rand() > RAND_MAX/2) {
+						highest = nval;
+						highest_n = n;
+					}
 				}
 			}
+			order_loc(&a->loc, &highest_n);
+			game->obsmap[loc2offset(&a->loc)] = 0;
+			game->obsmap[loc2offset(&highest_n)] = 1;
+			list_move(&a->node, &game->freeants);
 		}
-		order_loc(&a->loc, &highest_n);
-		game->obsmap[loc2offset(&a->loc)] = 0;
-		game->obsmap[loc2offset(&highest_n)] = 1;
-		list_move(&a->node, &game->freeants);
 	}
 }
