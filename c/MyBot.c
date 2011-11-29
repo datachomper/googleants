@@ -224,7 +224,7 @@ void do_turn(struct Game *game)
 			struct loc next;
 			hill = list_first_entry(&game->enemy_hill_l, struct goal, node);
 			if (!astar(game->obsmap, &a->loc, &hill->loc, &next)) {
-				fprintf(stderr, "move a(%d,%d) to g(%d,%d)\n",
+				fprintf(stderr, "move a(%d,%d) to h(%d,%d)\n",
 					a->loc.x, a->loc.y,
 					next.x, next.y);
 				order_loc(&a->loc, &next);
@@ -232,9 +232,9 @@ void do_turn(struct Game *game)
 				game->obsmap[loc2offset(&next)] = 1;
 				list_move(&a->node, &game->freeants);
 			} else {
-				fprintf(stderr, "No route for a(%d,%d) to g(%d,%d)\n",
+				fprintf(stderr, "No route for a(%d,%d) to h(%d,%d)\n",
 					a->loc.x, a->loc.y,
-					g->loc.x, g->loc.y);
+					next.x, next.y);
 			}
 		} else {
 			int d, nval;

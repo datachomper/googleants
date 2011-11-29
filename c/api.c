@@ -115,6 +115,21 @@ struct square * get_best_f(struct list_head *openlist)
 	return lowest;
 }
 
+int is_visible(struct Game *game, struct loc *a) {
+	return game->viewmap[loc2offset(a)];
+}
+
+int loc_in_hill_list(struct Game *game, struct loc *a) {
+	struct goal *g;
+	list_for_each_entry(g, &game->enemy_hill_l, node) {
+		fprintf(stderr, "check g(%d,%d) a(%d,%d)\n",g->loc.x, g->loc.y, a->x, a->y);
+		if (!memcmp(&g->loc, a, sizeof(*a))) {
+				return 1;
+		}
+	}
+	return 0;
+}
+
 int astar(int *map, struct loc *a, struct loc *b, struct loc *next)
 {
 	struct square *s, *n;
@@ -347,17 +362,21 @@ int main()
 						game->flowaway[loc(row,col)] = 1;
 					} else {
 						struct goal *g;
-						if (list_empty(&game->freegoals)) {
-							g = malloc(sizeof(*g));
-							list_add_tail(&g->node, &game->enemy_hill_l);
-						} else {
-							g = list_first_entry(&game->freegoals, struct goal, node);
-							list_move(&g->node, &game->enemy_hill_l);
+						struct loc tmploc = {row, col};
+						if (!loc_in_hill_list(game, &tmploc)) {
+							if (list_empty(&game->freegoals)) {
+								g = malloc(sizeof(*g));
+								list_add_tail(&g->node, &game->enemy_hill_l);
+								fprintf(stderr, "Added new hill to goals\n");
+							} else {
+								g = list_first_entry(&game->freegoals, struct goal, node);
+								list_move(&g->node, &game->enemy_hill_l);
+								fprintf(stderr, "Added old hill to goals\n");
+							}
+							g->loc.x = row;
+							g->loc.y = col;
+							g->type = ATTACK;
 						}
-						g->loc.x = row;
-						g->loc.y = col;
-						g->type = ATTACK;
-						fprintf(stderr, "Spotted enemy hill\n");
 					}
 					break;
 				case 'a':
@@ -398,6 +417,14 @@ int main()
 					break;
 			}
 			if (!strcmp(arg[0], "go")) {
+				/* Remove capped hills */
+				struct goal *g, *g1;
+				list_for_each_entry_safe(g, g1, &game->enemy_hill_l, node) {
+					if (is_visible(game, &g->loc) && !game->hillmap[loc2offset(&g->loc)]) {
+							fprintf(stderr, "Removed hill from goals\n");
+							list_move(&g->node, &game->freegoals);
+					}
+				}
 				do_turn(game);
 				fprintf(stderr, "Turn %d complete with %dms remaining\n",
 					game->turn, time_remaining(game));
