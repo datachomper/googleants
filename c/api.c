@@ -130,7 +130,7 @@ int loc_in_hill_list(struct Game *game, struct loc *a) {
 	return 0;
 }
 
-int astar(int *map, struct loc *a, struct loc *b, struct loc *next)
+int astar(struct Game *game, struct loc *a, struct loc *b, struct loc *next)
 {
 	struct square *s, *n;
 	struct square *start, *target;
@@ -167,7 +167,9 @@ int astar(int *map, struct loc *a, struct loc *b, struct loc *next)
 		// Add all valid neighbor moves onto the open list
 		for (d=0; d<4; d++) {
 			n = &slist[neighbor(s->loc.x, s->loc.y, d)];
-			if (map[loc2offset(&n->loc)] == 1 || n->list == CLOSED)
+			if (game->watermap[loc2offset(&n->loc)] == 1 || n->list == CLOSED)
+				continue;
+			if ((s->g == 0) && game->antmap[loc2offset(&n->loc)] == 1)
 				continue;
 			if (n->list == OPEN) {
 				if (s->g+1 < n->g) {

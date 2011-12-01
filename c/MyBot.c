@@ -132,11 +132,6 @@ void do_turn(struct Game *game)
 	int x,y;
 	struct ant *a, *a2;
 
-	/* Generate obstacle map from water + antmap */
-	for (x=0; x<ROWS*COLS; x++) {
-			game->obsmap[x] = (game->watermap[x] || game->antmap[x]) ? 1 : 0;
-	}
-
 	/* Slowly create a BFS map to flow ants away from the hill */
 	for (x=0; x<ROWS; x++) {
 			for (y=0; y<COLS; y++) {
@@ -160,13 +155,11 @@ void do_turn(struct Game *game)
 			}
 	}
 
-#if 0
 	if (game->turn < 50) {
 			char *mapname = malloc(BUFSIZ);
 			sprintf(mapname, "maps/turn%d.pnm", game->turn);
 			write_img(game->flowaway, mapname);
 	}
-#endif
 
 	list_for_each_entry(f, &game->food_l, node) {
 		if (list_empty(&game->freegoals)) {
@@ -200,13 +193,13 @@ void do_turn(struct Game *game)
 			continue;
 		}
 
-		if (!astar(game->obsmap, &a->loc, &g->loc, &next)) {
+		if (!astar(game, &a->loc, &g->loc, &next)) {
 			fprintf(stderr, "move a(%d,%d) to g(%d,%d)\n",
 				a->loc.x, a->loc.y,
 				next.x, next.y);
 			order_loc(&a->loc, &next);
-			game->obsmap[loc2offset(&a->loc)] = 0;
-			game->obsmap[loc2offset(&next)] = 1;
+			game->antmap[loc2offset(&a->loc)] = 0;
+			game->antmap[loc2offset(&next)] = 1;
 			list_move(&a->node, &game->freeants);
 			list_move(&g->node, &game->freegoals);
 		} else {
@@ -223,13 +216,13 @@ void do_turn(struct Game *game)
 			struct goal *hill;
 			struct loc next;
 			hill = list_first_entry(&game->enemy_hill_l, struct goal, node);
-			if (!astar(game->obsmap, &a->loc, &hill->loc, &next)) {
+			if (!astar(game, &a->loc, &hill->loc, &next)) {
 				fprintf(stderr, "move a(%d,%d) to h(%d,%d)\n",
 					a->loc.x, a->loc.y,
 					next.x, next.y);
 				order_loc(&a->loc, &next);
-				game->obsmap[loc2offset(&a->loc)] = 0;
-				game->obsmap[loc2offset(&next)] = 1;
+				game->antmap[loc2offset(&a->loc)] = 0;
+				game->antmap[loc2offset(&next)] = 1;
 				list_move(&a->node, &game->freeants);
 			} else {
 				fprintf(stderr, "No route for a(%d,%d) to h(%d,%d)\n",
@@ -242,7 +235,7 @@ void do_turn(struct Game *game)
 			struct loc n, highest_n;
 			for (d=0; d<4; d++) {
 				loc_neighbor(&a->loc, &n, d);
-				if (game->obsmap[loc2offset(&n)])
+				if (game->watermap[loc2offset(&n)] || game->antmap[loc2offset(&n)])
 						continue;
 				nval = game->flowaway[loc2offset(&n)];
 				if (highest == -1 || nval > highest) {
@@ -256,8 +249,8 @@ void do_turn(struct Game *game)
 				}
 			}
 			order_loc(&a->loc, &highest_n);
-			game->obsmap[loc2offset(&a->loc)] = 0;
-			game->obsmap[loc2offset(&highest_n)] = 1;
+			game->antmap[loc2offset(&a->loc)] = 0;
+			game->antmap[loc2offset(&highest_n)] = 1;
 			list_move(&a->node, &game->freeants);
 		}
 	}
